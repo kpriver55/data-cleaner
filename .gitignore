@@ -1,0 +1,22 @@
+# Jupyter Notebooks
+*.ipynb
+.ipynb_checkpoints/
+
+# Spreadsheets
+*.xlsx
+*.xls
+*.csv
+*.ods
+
+# Markdown files (except README)
+*.md
+!README.md
+!readme.md
+!Readme.md
+
+# virtual environments
+*.venv
+
+
+#pycache
+__pycache__

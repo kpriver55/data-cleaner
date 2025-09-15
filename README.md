@@ -1,170 +1,193 @@
-# DSPy Data Cleaning Agent
+# 🧹 AI Data Cleaning Assistant
 
-A sophisticated data cleaning agent built using DSPy (Declarative Self-improving Python) that leverages Large Language Models (LLMs) to intelligently analyze, plan, and execute data cleaning operations on messy datasets.
+An intelligent **web-based data cleaning application** built with Streamlit that leverages Large Language Models (LLMs) to automatically analyze, plan, and execute data cleaning operations. Upload your messy datasets and let AI clean them for you through an intuitive web interface.
 
-## 🚀 Features
+## ✨ Key Features
 
-- **Intelligent Data Analysis**: Uses LLM reasoning to analyze data quality and identify cleaning needs
-- **Automated Cleaning Plan Generation**: Creates step-by-step cleaning plans with rationale
-- **ReAct Agent Execution**: Implements ReAct (Reasoning + Acting) pattern for tool-based execution
-- **Comprehensive Data Operations**:
+### 🌐 Web Interface (Primary Usage)
+- **Upload & Clean**: Drag-and-drop CSV/Excel files directly in your browser
+- **AI-Powered Analysis**: Automatic data quality assessment with visual insights
+- **Interactive Visualizations**: Real-time charts showing data quality issues and cleaning progress
+- **Smart Cleaning Plans**: AI generates step-by-step cleaning strategies with explanations
+- **Multiple Export Options**: Download cleaned data as CSV, Excel, or with detailed reports
+- **Model Selection**: Choose from multiple LLM models for different cleaning approaches
+- **Real-time Progress**: Watch the AI work through cleaning operations with live updates
+
+### 🤖 AI Capabilities
+- **Intelligent Data Analysis**: Uses LLM reasoning to identify data quality issues
+- **Automated Planning**: Creates comprehensive cleaning plans with detailed rationale
+- **ReAct Agent Execution**: Implements Reasoning + Acting pattern for systematic cleaning
+- **Comprehensive Operations**:
   - Missing value handling (mean, median, mode, forward/back fill, KNN imputation)
-  - Duplicate removal
-  - Outlier detection and removal
-  - Text data cleaning (whitespace, case normalization, special characters)
-  - Data type conversions
-  - Statistical analysis and reporting
-
-- **Detailed Reporting**: Generates comprehensive markdown reports of all cleaning operations
-- **Extensible Architecture**: Modular design with separate tools for different operations
+  - Duplicate detection and removal
+  - Outlier detection and handling
+  - Text data normalization (whitespace, case, special characters)
+  - Smart data type conversions
+  - Statistical analysis and validation
+- **Detailed Reporting**: Generates comprehensive markdown reports of all operations performed
 
 ## 📁 Project Structure
 
 ```
 data-cleaner/
-├── main.py                        # Main entry point with demo
-├── data_cleaning_agent.py          # Core DSPy agent implementation
-├── data_cleaning_tool.py           # ReAct-compatible tool wrapper
-├── data_transformation_tool.py     # Data transformation operations
-├── file_io_tool.py                 # File I/O operations
-├── stats_tool.py                   # Statistical analysis tools
-├── signatures.py                   # DSPy signatures for LLM interactions
-└── requirements.txt                # Python dependencies
+├── app.py                          # 🌐 Streamlit web application (PRIMARY INTERFACE)
+├── main.py                         # 🔧 Command-line demo script
+├── data_cleaning_agent.py          # 🤖 Core DSPy agent implementation
+├── data_cleaning_tool.py           # ⚙️  ReAct-compatible tool wrapper
+├── data_transformation_tool.py     # 🔄 Data transformation operations
+├── file_io_tool.py                 # 📁 File I/O operations
+├── stats_tool.py                   # 📊 Statistical analysis tools
+├── signatures.py                   # 📝 DSPy signatures for LLM interactions
+└── requirements.txt                # 📦 Python dependencies
 ```
 
-## 🛠️ Installation
+## 🚀 Quick Start
 
-1. **Clone the repository**:
-   ```bash
-   git clone <repository-url>
-   cd data-cleaner
-   ```
-
-2. **Create a virtual environment**:
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   ```
-
-3. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Set up Ollama** (for local LLM):
-   ```bash
-   # Install Ollama (see https://ollama.ai)
-   ollama pull llama3.2:3b-instruct-q6_k
-   ollama serve  # Start Ollama server on localhost:11434
-   ```
-
-## 🔧 Usage
-
-### Basic Usage
-
-```python
-from data_cleaning_agent import DataCleaningAgent
-from file_io_tool import FileIOTool
-from stats_tool import StatisticalAnalysisTool
-from data_transformation_tool import DataTransformationTool
-
-# Initialize tools
-io_tool = FileIOTool()
-stats_tool = StatisticalAnalysisTool()
-transform_tool = DataTransformationTool()
-
-# Create agent
-agent = DataCleaningAgent(io_tool, stats_tool, transform_tool)
-
-# Clean a dataset
-result = agent.clean_dataset('your_messy_data.csv')
-```
-
-### Running the Demo
-
+### 1. Installation
 ```bash
-python main.py
+# Clone the repository
+git clone <repository-url>
+cd data-cleaner
+
+# Create and activate virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
 ```
 
-This will:
-1. Generate sample messy data with various quality issues
-2. Analyze the data using the LLM
-3. Create an intelligent cleaning plan
-4. Execute the plan using the ReAct agent
-5. Save cleaned data and generate a detailed report
+### 2. Set up Ollama (Local LLM)
+```bash
+# Install Ollama (visit https://ollama.ai for installation instructions)
+# Pull a recommended model
+ollama pull qwen2.5:7b-instruct-q5_k_m
+
+# Start Ollama server
+ollama serve  # Runs on localhost:11434
+```
+
+### 3. Launch the Web App
+```bash
+streamlit run app.py
+```
+
+The app will open in your browser at `http://localhost:8501`
+
+## 🖥️ How to Use
+
+### Web Interface (Recommended)
+
+1. **Launch the app**: `streamlit run app.py`
+2. **Upload your data**: Drag and drop CSV or Excel files
+3. **Configure settings**: Choose your preferred LLM model in the sidebar
+4. **Initialize AI agent**: Click "Initialize AI Agent"
+5. **Review data**: Explore the "Data Overview" tab to understand your dataset
+6. **Start cleaning**: Go to "AI Cleaning" tab and click "Start AI Cleaning"
+7. **Review results**: Check the "Results" tab and download cleaned data
+
+### Features in the Web App
+- **📊 Data Overview**: Visualize data quality issues, missing values, and data types
+- **🤖 AI Cleaning**: Watch the AI analyze, plan, and execute cleaning operations
+- **📈 Results**: Compare before/after statistics and download cleaned datasets
+- **⚙️ Model Selection**: Choose from multiple LLM models (Qwen, Llama, etc.)
+- **🔧 Cleaning Options**: Configure conservative mode and auto-execution settings
+
+### Command Line (Alternative)
+
+For programmatic usage or testing:
+```bash
+python main.py  # Run demo with sample data
+```
 
 ## 🧠 How It Works
 
-### 1. Data Analysis Phase
-- Loads and analyzes the input dataset
-- Identifies missing values, data types, outliers, and quality issues
-- Generates comprehensive statistical summaries
+### 1. 📊 Smart Data Analysis
+- **Upload Detection**: Automatically detects file format and loads data
+- **Quality Assessment**: AI analyzes missing values, data types, outliers, and inconsistencies
+- **Visual Insights**: Interactive charts reveal data quality patterns
+- **Statistical Summary**: Comprehensive overview of dataset characteristics
 
-### 2. LLM Planning Phase
-- Uses DSPy's ChainOfThought with custom signatures
-- Analyzes data quality metrics and sample data
-- Generates a step-by-step cleaning plan with rationale
+### 2. 🤖 AI Planning
+- **LLM Analysis**: Uses DSPy framework with custom reasoning signatures
+- **Context Understanding**: AI examines data samples and quality metrics
+- **Smart Strategy**: Generates step-by-step cleaning plan with detailed rationale
+- **Risk Assessment**: Identifies potential issues and suggests conservative approaches
 
-### 3. ReAct Execution Phase
-- Implements ReAct (Reasoning + Acting) pattern
-- Uses available tools to execute the cleaning plan
-- Provides real-time feedback and adjustments
+### 3. ⚡ Automated Execution
+- **ReAct Pattern**: Implements Reasoning + Acting for systematic cleaning
+- **Tool Orchestration**: Coordinates multiple specialized cleaning tools
+- **Real-time Updates**: Live progress tracking in the web interface
+- **Error Handling**: Graceful handling of edge cases and data anomalies
 
-### 4. Reporting Phase
-- Tracks all operations performed
-- Generates detailed markdown reports
-- Saves cleaned datasets with proper naming
+### 4. 📋 Results & Reporting
+- **Before/After Comparison**: Visual comparison of dataset improvements
+- **Operation Log**: Detailed record of all transformations performed
+- **Quality Metrics**: Statistical validation of cleaning effectiveness
+- **Export Options**: Multiple download formats with comprehensive reports
 
-## 🔧 Configuration
+## ⚙️ Configuration
 
-### LLM Configuration
+### 🤖 Model Selection
+The web app supports multiple LLM models through the sidebar:
+- **Qwen 2.5 7B** (Recommended): `qwen2.5:7b-instruct-q5_k_m`
+- **Llama 3.1 8B**: `llama3.1:8b-instruct-q5_k_M`
+- **Qwen 2.5 14B**: `qwen2.5:14b-instruct-q4_k_m` (Higher quality, slower)
+- **Llama 3.2 3B**: `llama3.2:3b-instruct-q6_k` (Faster, lower memory)
 
-The agent is configured to use Ollama with Llama 3.2. You can modify the LLM configuration in `main.py`:
+### 🔧 Cleaning Options
+Configure cleaning behavior in the sidebar:
+- **Auto-execute high confidence operations**: Automatically apply safe transformations
+- **Conservative mode**: Prefer safer operations over aggressive cleaning
+- **Manual review**: Review AI recommendations before applying changes
 
-```python
-# Configure DSPy to use different LLM
-ollama_lm = dspy.LM("ollama_chat/llama3.2:3b-instruct-q6_k", 
-                    api_base="http://localhost:11434", 
-                    api_key="")
-dspy.settings.configure(lm=ollama_lm)
+### 🐳 Ollama Setup
+Make sure Ollama is running with your chosen model:
+```bash
+# Pull your preferred model
+ollama pull qwen2.5:7b-instruct-q5_k_m
+
+# Ensure Ollama is running
+ollama serve  # Should be accessible at http://localhost:11434
 ```
 
-### Tool Configuration
+## 📊 What You Get
 
-Each tool can be configured with custom parameters:
+### 🖥️ Interactive Web Interface
+- **Real-time Visualizations**: Data quality charts, missing value heatmaps, distribution plots
+- **Progress Tracking**: Live updates as AI analyzes and cleans your data
+- **Before/After Comparison**: Side-by-side statistics showing improvements
+- **AI Reasoning Display**: See exactly how the AI analyzes your data and makes decisions
 
-```python
-# Custom missing value handling
-agent.cleaning_tool.handle_missing_values(strategy='knn', columns=['age', 'income'])
+### 📋 Comprehensive Reports
+- **Cleaning Strategy**: AI-generated plan with detailed rationale for each operation
+- **Execution Log**: Step-by-step record of all transformations performed
+- **Quality Metrics**: Statistical validation showing data improvement
+- **Operation Summary**: Clear breakdown of rows affected, changes made, and time taken
 
-# Custom outlier removal
-agent.cleaning_tool.remove_outliers(columns=['salary'], method='iqr', threshold=1.5)
-```
+### 💾 Multiple Export Options
+- **CSV Format**: Universal compatibility for further analysis
+- **Excel Format**: Formatted spreadsheet with preserved data types
+- **Markdown Report**: Detailed documentation of the entire cleaning process
 
-## 📊 Example Output
+## 📦 Dependencies
 
-The agent generates detailed reports showing:
+### 🌐 Web Application
+- **streamlit**: Modern web app framework for the user interface
+- **plotly**: Interactive data visualizations and charts
 
-- **Before/After Statistics**: Dataset shape changes, missing value counts
-- **Cleaning Plan**: Step-by-step operations with rationale
-- **ReAct Execution Log**: Detailed reasoning and tool usage
-- **Operations Log**: Precise record of all transformations performed
+### 🤖 AI & Data Processing
+- **dspy**: DSPy framework for LLM programming and agent orchestration
+- **pandas**: Data manipulation and analysis engine
+- **numpy**: Numerical computing foundation
+- **scikit-learn**: Machine learning utilities for advanced cleaning
+- **scipy**: Scientific computing for statistical operations
 
-## 🔗 Dependencies
+### 📁 File Support
+- **openpyxl**: Excel file reading and writing
+- **PyYAML**: Configuration and structured data support
 
-### Core Dependencies
-- **dspy**: DSPy framework for LLM programming
-- **pandas**: Data manipulation and analysis
-- **numpy**: Numerical computing
-- **scikit-learn**: Machine learning utilities
-- **scipy**: Scientific computing
-
-### LLM Dependencies
-- **litellm**: LLM API abstraction
-- **openai**: OpenAI API client
-- **httpx**: HTTP client for API calls
-
-See `requirements.txt` for complete dependency list.
+See `requirements.txt` for complete dependency list with version specifications.
 
 ## 🤝 Contributing
 
@@ -184,17 +207,38 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Uses [Ollama](https://ollama.ai) for local LLM inference
 - Inspired by ReAct (Reasoning + Acting) paradigm for AI agents
 
-## 🔍 Example Use Cases
+## 🎯 Perfect For
 
-- **Data Science Preprocessing**: Clean datasets before analysis or modeling
-- **Business Intelligence**: Prepare data for reporting and dashboards  
-- **Research Data**: Clean experimental or survey data
-- **ETL Pipelines**: Automated data quality assurance
-- **Data Migration**: Clean data during system migrations
+### 📊 Data Scientists & Analysts
+- **Preprocessing**: Clean messy datasets before analysis or machine learning
+- **Exploratory Analysis**: Quickly understand and improve data quality
+- **Feature Engineering**: Prepare clean features for modeling
 
-## ⚠️ Known Limitations
+### 💼 Business Users
+- **Report Preparation**: Clean data for dashboards and business intelligence
+- **Data Migration**: Ensure data quality during system transitions
+- **Compliance**: Standardize data formats for regulatory requirements
 
-- Requires Ollama server running locally
-- Performance depends on LLM model size and capabilities
-- Large datasets may require chunking for memory efficiency
-- Complex domain-specific cleaning may require custom rules
+### 🔬 Researchers
+- **Survey Data**: Clean and standardize questionnaire responses
+- **Experimental Data**: Handle missing values and outliers in research datasets
+- **Publication Ready**: Prepare clean datasets for academic publications
+
+### 🏢 Organizations
+- **ETL Pipelines**: Automated data quality assurance in data workflows
+- **Master Data Management**: Maintain clean, consistent organizational data
+- **Data Governance**: Implement systematic data quality improvements
+
+## ⚠️ Requirements & Limitations
+
+### 🔧 System Requirements
+- **Ollama**: Local LLM server must be running on `localhost:11434`
+- **Memory**: Recommend 8GB+ RAM for larger datasets and models
+- **Browser**: Modern web browser with JavaScript enabled
+- **Python**: 3.8+ with pip package management
+
+### 📊 Data Limitations
+- **File Size**: Very large datasets (>100MB) may require chunking
+- **Model Performance**: Cleaning quality depends on chosen LLM model capabilities
+- **Domain Specific**: Complex industry-specific rules may need manual configuration
+- **Internet**: Requires local setup; no cloud processing for data privacy

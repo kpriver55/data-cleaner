@@ -2,12 +2,13 @@
 *.ipynb
 .ipynb_checkpoints/
 
-# Spreadsheets
+# Spreadsheets/json
 *.xlsx
 *.xls
 *.csv
 *.ods
-
+*.json
+*.jsonl
 # Markdown files (except README)
 *.md
 !README.md
@@ -20,3 +21,11 @@
 
 #pycache
 __pycache__
+
+#observer related (separate project)
+/observer
+/traces
+debug_observer.py
+test_dspy_observer.py
+debug_traces
+dspy_traces

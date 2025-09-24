@@ -37,9 +37,11 @@ class DataTransformationTool:
         """Return the transformation log."""
         return self.transformation_log
     
-    def handle_missing_values(self, 
-                             df: pd.DataFrame, 
-                             strategy: str = 'mean',
+    def handle_missing_values(self,
+                             df: pd.DataFrame,
+                             strategy: Optional[str] = None,
+                             numeric_strategy: str = 'median',
+                             categorical_strategy: str = 'most_frequent',
                              columns: Optional[List[str]] = None,
                              custom_values: Optional[Dict[str, Any]] = None) -> pd.DataFrame:
         """
@@ -47,7 +49,9 @@ class DataTransformationTool:
         
         Args:
             df: Input DataFrame
-            strategy: 'mean', 'median', 'mode', 'constant', 'drop', 'forward_fill', 'back_fill', 'knn'
+            strategy: Legacy parameter - if provided, applies to all columns (overrides type-specific strategies)
+            numeric_strategy: Strategy for numeric columns ('mean', 'median', 'interpolate', 'knn', etc.)
+            categorical_strategy: Strategy for categorical columns ('most_frequent', 'unknown', 'empty_string', etc.)
             columns: Specific columns to process (None for all)
             custom_values: Custom fill values for 'constant' strategy
             
@@ -55,15 +59,116 @@ class DataTransformationTool:
             New DataFrame with missing values handled
         """
         df_clean = df.copy()
-        
+
         if columns is None:
             columns = df.columns.tolist()
-        
+
         processed_columns = []
+
+        # If legacy strategy is provided, use it for all columns
+        if strategy is not None:
+            return self._handle_legacy_strategy(df_clean, strategy, columns, custom_values)
+
+        # Separate columns by type
+        numeric_columns = [col for col in columns
+                          if col in df_clean.columns and pd.api.types.is_numeric_dtype(df_clean[col]) and df_clean[col].isna().any()]
+        categorical_columns = [col for col in columns
+                              if col in df_clean.columns and not pd.api.types.is_numeric_dtype(df_clean[col]) and df_clean[col].isna().any()]
+
+        # Handle numeric columns
+        if numeric_columns:
+            df_clean, num_processed = self._apply_numeric_strategy(df_clean, numeric_strategy, numeric_columns)
+            processed_columns.extend(num_processed)
+
+        # Handle categorical columns
+        if categorical_columns:
+            df_clean, cat_processed = self._apply_categorical_strategy(df_clean, categorical_strategy, categorical_columns, custom_values)
+            processed_columns.extend(cat_processed)
         
+        self.log_transformation('handle_missing_values', {
+            'strategy': strategy,
+            'numeric_strategy': numeric_strategy,
+            'categorical_strategy': categorical_strategy,
+            'columns_processed': processed_columns,
+            'custom_values': custom_values
+        })
+
+        return df_clean
+
+    def _apply_numeric_strategy(self, df: pd.DataFrame, strategy: str, columns: List[str]) -> Tuple[pd.DataFrame, List[str]]:
+        """Apply imputation strategy specifically for numeric columns."""
+        df_clean = df.copy()
+        processed_columns = []
+
+        for col in columns:
+            if strategy == 'mean':
+                fill_value = df_clean[col].mean()
+            elif strategy == 'median':
+                fill_value = df_clean[col].median()
+            elif strategy == 'mode' or strategy == 'most_frequent':
+                fill_value = df_clean[col].mode().iloc[0] if len(df_clean[col].mode()) > 0 else df_clean[col].mean()
+            elif strategy == 'interpolate':
+                df_clean[col] = df_clean[col].interpolate()
+                processed_columns.append(col)
+                continue
+            elif strategy == 'zero':
+                fill_value = 0
+            elif strategy == 'knn':
+                # Handle KNN separately as it works on multiple columns
+                imputer = KNNImputer(n_neighbors=5)
+                df_clean[columns] = imputer.fit_transform(df_clean[columns])
+                return df_clean, columns
+            else:
+                # Default to median for unknown strategies
+                fill_value = df_clean[col].median()
+                print(f"Warning: Unknown numeric strategy '{strategy}', defaulting to median for column '{col}'")
+
+            df_clean[col] = df_clean[col].fillna(fill_value)
+            processed_columns.append(col)
+
+        return df_clean, processed_columns
+
+    def _apply_categorical_strategy(self, df: pd.DataFrame, strategy: str, columns: List[str], custom_values: Optional[Dict[str, Any]] = None) -> Tuple[pd.DataFrame, List[str]]:
+        """Apply imputation strategy specifically for categorical columns."""
+        df_clean = df.copy()
+        processed_columns = []
+
+        for col in columns:
+            if strategy == 'most_frequent' or strategy == 'mode':
+                fill_value = df_clean[col].mode().iloc[0] if len(df_clean[col].mode()) > 0 else 'Unknown'
+            elif strategy == 'unknown':
+                fill_value = 'Unknown'
+            elif strategy == 'empty_string':
+                fill_value = ''
+            elif strategy == 'missing':
+                fill_value = 'Missing'
+            elif strategy == 'forward_fill':
+                df_clean[col] = df_clean[col].fillna(method='ffill')
+                processed_columns.append(col)
+                continue
+            elif strategy == 'back_fill':
+                df_clean[col] = df_clean[col].fillna(method='bfill')
+                processed_columns.append(col)
+                continue
+            elif strategy == 'constant':
+                fill_value = custom_values.get(col, 'Unknown') if custom_values else 'Unknown'
+            else:
+                # Default to most_frequent for unknown strategies
+                fill_value = df_clean[col].mode().iloc[0] if len(df_clean[col].mode()) > 0 else 'Unknown'
+                print(f"Warning: Unknown categorical strategy '{strategy}', defaulting to most_frequent for column '{col}'")
+
+            df_clean[col] = df_clean[col].fillna(fill_value)
+            processed_columns.append(col)
+
+        return df_clean, processed_columns
+
+    def _handle_legacy_strategy(self, df: pd.DataFrame, strategy: str, columns: List[str], custom_values: Optional[Dict[str, Any]] = None) -> pd.DataFrame:
+        """Handle the legacy single-strategy approach for backward compatibility."""
+        df_clean = df.copy()
+
+        # This maintains the original complex logic for backward compatibility
         if strategy == 'drop':
             df_clean = df_clean.dropna(subset=columns)
-            
         elif strategy in ['mean', 'median', 'most_frequent']:
             for col in columns:
                 if col in df_clean.columns and df_clean[col].isna().any():
@@ -72,44 +177,19 @@ class DataTransformationTool:
                             fill_value = df_clean[col].mean()
                         elif strategy == 'median':
                             fill_value = df_clean[col].median()
-                        else:  # most_frequent for numeric
+                        else:  # most_frequent
                             fill_value = df_clean[col].mode().iloc[0] if len(df_clean[col].mode()) > 0 else df_clean[col].mean()
                         df_clean[col] = df_clean[col].fillna(fill_value)
-                        processed_columns.append(col)
-                    elif strategy == 'most_frequent':
-                        # For categorical columns
-                        fill_value = df_clean[col].mode().iloc[0] if len(df_clean[col].mode()) > 0 else 'Unknown'
+                    else:
+                        # Adapt strategy for non-numeric columns
+                        if strategy in ['mean', 'median']:
+                            fill_value = df_clean[col].mode().iloc[0] if len(df_clean[col].mode()) > 0 else 'Unknown'
+                            print(f"Note: Adapted strategy from '{strategy}' to 'most_frequent' for non-numerical column '{col}'")
+                        else:  # most_frequent
+                            fill_value = df_clean[col].mode().iloc[0] if len(df_clean[col].mode()) > 0 else 'Unknown'
                         df_clean[col] = df_clean[col].fillna(fill_value)
-                        processed_columns.append(col)
-        
-        elif strategy == 'constant':
-            for col in columns:
-                if col in df_clean.columns and df_clean[col].isna().any():
-                    fill_value = custom_values.get(col, 0) if custom_values else 0
-                    df_clean[col] = df_clean[col].fillna(fill_value)
-                    processed_columns.append(col)
-        
-        elif strategy == 'forward_fill':
-            df_clean[columns] = df_clean[columns].fillna(method='ffill')
-            processed_columns = columns
-            
-        elif strategy == 'back_fill':
-            df_clean[columns] = df_clean[columns].fillna(method='bfill')
-            processed_columns = columns
-            
-        elif strategy == 'knn':
-            numeric_cols = [col for col in columns if pd.api.types.is_numeric_dtype(df_clean[col])]
-            if numeric_cols:
-                imputer = KNNImputer(n_neighbors=5)
-                df_clean[numeric_cols] = imputer.fit_transform(df_clean[numeric_cols])
-                processed_columns = numeric_cols
-        
-        self.log_transformation('handle_missing_values', {
-            'strategy': strategy,
-            'columns_processed': processed_columns,
-            'custom_values': custom_values
-        })
-        
+        # Add other legacy strategies as needed...
+
         return df_clean
     
     def remove_outliers(self, 

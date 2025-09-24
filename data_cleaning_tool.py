@@ -26,27 +26,40 @@ class DataCleaningTool:
         """Get the current state of the dataframe"""
         return self.current_df.copy()
     
-    def handle_missing_values(self, strategy: str = 'median', columns: Optional[List[str]] = None) -> str:
-        """Handle missing values in the dataset"""
+    def handle_missing_values(self,
+                            numeric_strategy: str = 'median',
+                            categorical_strategy: str = 'most_frequent',
+                            columns: Optional[List[str]] = None) -> str:
+        """Handle missing values in the dataset with separate strategies for numeric and categorical columns"""
         try:
             if self.current_df is None:
                 return "Error: No dataframe loaded"
             
             original_rows = len(self.current_df)
+
             self.current_df = self.transform_tool.handle_missing_values(
-                self.current_df, strategy=strategy, columns=columns
+                self.current_df,
+                strategy=None,  # Always use separate strategies
+                numeric_strategy=numeric_strategy,
+                categorical_strategy=categorical_strategy,
+                columns=columns
             )
-            
-            result = f"Successfully handled missing values using {strategy} strategy. "
+
+            result = f"Successfully handled missing values using '{numeric_strategy}' for numeric and '{categorical_strategy}' for categorical columns. "
+
             if columns:
                 result += f"Applied to columns: {columns}. "
             else:
                 result += "Applied to all columns with missing values. "
             result += f"Dataset still has {len(self.current_df)} rows."
-            
+
             self.operations_log.append({
                 'operation': 'handle_missing_values',
-                'parameters': {'strategy': strategy, 'columns': columns},
+                'parameters': {
+                    'numeric_strategy': numeric_strategy,
+                    'categorical_strategy': categorical_strategy,
+                    'columns': columns
+                },
                 'rows_before': original_rows,
                 'rows_after': len(self.current_df)
             })

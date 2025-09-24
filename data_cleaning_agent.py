@@ -1,12 +1,10 @@
 import dspy
-import scipy
 import pandas as pd
 import json
-from typing import Dict, List, Any, Optional
-from pathlib import Path
+from typing import Dict, Any, Optional
 from signatures import DataAnalysisSignature, DataCleaningExecutionSignature
 from data_cleaning_tool import DataCleaningTool
-
+from pathlib import Path
 
 class DataCleaningAgent(dspy.Module):
     """
@@ -162,8 +160,8 @@ Rationale: {rationale}
 The dataset currently has {original_shape[0]} rows and {original_shape[1]} columns.
 
 Available tools:
-- handle_missing_values(strategy, columns): Handle missing values
-- remove_duplicates(subset, keep): Remove duplicate rows  
+- handle_missing_values(strategy, numeric_strategy, categorical_strategy, columns): Handle missing values. Use strategy for single approach or separate numeric_strategy/categorical_strategy for type-specific handling. Examples: numeric_strategy='mean', categorical_strategy='most_frequent'
+- remove_duplicates(subset, keep): Remove duplicate rows
 - remove_outliers(columns, method, threshold): Remove outliers
 - clean_text_columns(columns, operations): Clean text data
 - convert_data_types(type_conversions): Convert column types

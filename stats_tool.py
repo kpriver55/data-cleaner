@@ -336,22 +336,59 @@ class StatisticalAnalysisTool:
         except Exception as e:
             return {"error": f"Error counting values: {str(e)}"}
     
-    def summary_report(self, 
-                      df: pd.DataFrame, 
+    def detect_duplicates(self,
+                         df: pd.DataFrame,
+                         subset: Optional[List[str]] = None) -> Dict[str, Any]:
+        """
+        Detect duplicate rows without removing them.
+
+        Args:
+            df: Input DataFrame
+            subset: Columns to consider for duplicates (None for all)
+
+        Returns:
+            Dictionary with duplicate information
+        """
+        try:
+            total_rows = len(df)
+
+            # Check for duplicates
+            duplicate_mask = df.duplicated(subset=subset, keep=False)
+            duplicate_count = duplicate_mask.sum()
+            unique_duplicates = len(df[duplicate_mask].drop_duplicates(subset=subset))
+
+            # Count how many would be removed (keeping first occurrence)
+            duplicates_to_remove = df.duplicated(subset=subset, keep='first').sum()
+
+            return {
+                "total_rows": total_rows,
+                "duplicate_rows": int(duplicate_count),
+                "duplicate_percentage": round((duplicate_count / total_rows) * 100, 2),
+                "unique_duplicate_patterns": int(unique_duplicates),
+                "rows_to_remove": int(duplicates_to_remove),
+                "subset_columns": subset,
+                "has_duplicates": str(duplicate_count > 0)
+            }
+
+        except Exception as e:
+            return {"error": f"Error detecting duplicates: {str(e)}"}
+
+    def summary_report(self,
+                      df: pd.DataFrame,
                       columns: Optional[List[str]] = None) -> Dict[str, Any]:
         """
         Generate comprehensive summary report.
-        
+
         Args:
             df: Input DataFrame
             columns: Specific columns to analyze
-            
+
         Returns:
             Complete statistical summary
         """
         if columns is None:
             columns = self.get_numeric_columns(df)
-        
+
         report = {
             "dataset_info": {
                 "total_rows": len(df),
@@ -361,9 +398,10 @@ class StatisticalAnalysisTool:
             },
             "column_statistics": self.basic_statistics(df, columns),
             "missing_data_summary": {},
+            "duplicate_summary": self.detect_duplicates(df),
             "data_types": df.dtypes.astype(str).to_dict()
         }
-        
+
         # Missing data summary
         missing_summary = {}
         for col in df.columns:
@@ -373,9 +411,9 @@ class StatisticalAnalysisTool:
                     "count": int(missing_count),
                     "percentage": round((missing_count / len(df)) * 100, 2)
                 }
-        
+
         report["missing_data_summary"] = missing_summary
-        
+
         return report
 
 # Example usage and testing

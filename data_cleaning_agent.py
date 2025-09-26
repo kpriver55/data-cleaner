@@ -1,7 +1,7 @@
 import dspy
 import pandas as pd
 import json
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from signatures import DataAnalysisSignature, DataCleaningExecutionSignature
 from data_cleaning_tool import DataCleaningTool
 from pathlib import Path
@@ -72,7 +72,7 @@ class DataCleaningAgent(dspy.Module):
     
     def get_cleaning_plan(self, data_analysis: Dict[str, Any]) -> tuple:
         """Use LLM reasoning to create a cleaning plan"""
-        
+
         # Convert numpy types to Python native types for JSON serialization
         def convert_numpy_types(obj):
             if isinstance(obj, dict):
@@ -85,40 +85,67 @@ class DataCleaningAgent(dspy.Module):
                 return str(obj)
             else:
                 return obj
-        
-        # Prepare inputs for the analyzer
+
+        # Prepare comprehensive data analysis input
         column_stats = convert_numpy_types(data_analysis['summary_report']['column_statistics'])
         sample_data = convert_numpy_types(data_analysis['sample_data'])
-        
-        data_summary = f"""
-Dataset Shape: {data_analysis['shape'][0]} rows × {data_analysis['shape'][1]} columns
 
-Dataset Info: {data_analysis['summary_report']['dataset_info']}
+        comprehensive_analysis = f"""
+=== DATASET OVERVIEW ===
+Shape: {data_analysis['shape'][0]} rows × {data_analysis['shape'][1]} columns
+Info: {json.dumps(data_analysis['summary_report']['dataset_info'], indent=2)}
 
-Column Statistics: {json.dumps(column_stats, indent=2)}
+=== DUPLICATE ANALYSIS ===
+{json.dumps(data_analysis['summary_report']['duplicate_summary'], indent=2)}
 
-Sample Data: {json.dumps(sample_data, indent=2)}
+=== MISSING DATA ANALYSIS ===
+Column-specific missing data: {json.dumps(data_analysis['missing_info'], indent=2)}
+Overall missing data summary: {json.dumps(data_analysis['summary_report']['missing_data_summary'], indent=2)}
+
+=== DATA TYPES ANALYSIS ===
+Current data types: {json.dumps(data_analysis['dtypes_info'], indent=2)}
+
+=== COLUMN STATISTICS ===
+{json.dumps(column_stats, indent=2)}
+
+=== SAMPLE DATA ===
+{json.dumps(sample_data, indent=2)}
 """
-        
-        missing_data_info = f"""
-Missing Data Summary: {json.dumps(data_analysis['missing_info'], indent=2)}
 
-Overall Missing Data: {data_analysis['summary_report']['missing_data_summary']}
-"""
-        
-        data_types_info = f"""
-Current Data Types: {json.dumps(data_analysis['dtypes_info'], indent=2)}
-"""
-        
-        # Get LLM's analysis and plan
-        result = self.analyzer(
-            data_summary=data_summary,
-            missing_data_info=missing_data_info,
-            data_types_info=data_types_info
-        )
-        
-        return result.cleaning_plan, result.rationale
-    
+        # Get LLM's comprehensive analysis and plan
+        result = self.analyzer(comprehensive_data_analysis=comprehensive_analysis)
+
+        return result.overall_cleaning_plan, result.rationale
+
+    def extract_required_operations(self, analyzer_result) -> List[str]:
+        """Extract which operations are actually needed based on the analyzer output"""
+        required_operations = []
+
+        # Check each plan field for action indicators
+        plans = {
+            'remove_duplicates': analyzer_result.duplicate_cleaning_plan,
+            'handle_missing_values': analyzer_result.missing_values_plan,
+            'remove_outliers': analyzer_result.outlier_handling_plan,
+            'clean_text_columns': analyzer_result.text_cleaning_plan,
+            'convert_data_types': analyzer_result.data_type_plan
+        }
+
+        for operation, plan_text in plans.items():
+            # Look for negative action indicators
+            plan_lower = plan_text.lower()
+            no_action_indicators = [
+                'no action needed', 'not required', 'no issues', 'skip this step',
+                'no duplicates found', 'no missing values', 'no outliers detected',
+                'no text issues', 'no cleaning needed', 'no conversion needed',
+                'already clean', 'not necessary', 'no problems', 'no action required'
+            ]
+
+            # Only require operation if no negative indicators are found
+            if not any(indicator in plan_lower for indicator in no_action_indicators):
+                required_operations.append(operation)
+
+        return required_operations
+
     def clean_dataset(self, input_path: str, output_path: Optional[str] = None) -> Dict[str, Any]:
         """
         Main method to clean a dataset using ReAct agent
@@ -151,16 +178,19 @@ Current Data Types: {json.dumps(data_analysis['dtypes_info'], indent=2)}
         print(f"\n🚀 Executing cleaning operations with ReAct agent...")
         
         task_description = f"""
-You have access to data cleaning tools. Your task is to clean the dataset based on this plan:
+IMPORTANT: You MUST complete ALL steps in the cleaning plan below. Do not stop after completing just one operation.
 
+=== CLEANING PLAN TO EXECUTE ===
 {cleaning_plan}
 
-Rationale: {rationale}
+=== RATIONALE ===
+{rationale}
 
-The dataset currently has {original_shape[0]} rows and {original_shape[1]} columns.
+=== DATASET INFO ===
+Current state: {original_shape[0]} rows × {original_shape[1]} columns
 
-Available tools:
-- handle_missing_values(strategy, numeric_strategy, categorical_strategy, columns): Handle missing values. Use strategy for single approach or separate numeric_strategy/categorical_strategy for type-specific handling. Examples: numeric_strategy='mean', categorical_strategy='most_frequent'
+=== AVAILABLE TOOLS ===
+- handle_missing_values(numeric_strategy, categorical_strategy, columns): Handle missing values
 - remove_duplicates(subset, keep): Remove duplicate rows
 - remove_outliers(columns, method, threshold): Remove outliers
 - clean_text_columns(columns, operations): Clean text data
@@ -168,7 +198,14 @@ Available tools:
 - inspect_data(columns): Inspect current data state
 - get_operations_log(): See what operations have been performed
 
-Execute the cleaning plan step by step. Inspect the data first, then perform each cleaning operation as needed.
+=== EXECUTION REQUIREMENTS ===
+1. FIRST: Use inspect_data() to understand the current dataset state
+2. EXECUTE EVERY STEP mentioned in the cleaning plan above - do not skip any steps
+3. After EACH operation, briefly check the results with inspect_data() if needed
+4. FINALLY: Use get_operations_log() to verify that ALL planned operations have been completed
+5. You are NOT finished until ALL cleaning steps have been attempted
+
+Begin execution now. Remember: you must complete EVERY step in the plan, not just the first one that seems to work.
 """
         
         # Execute with ReAct

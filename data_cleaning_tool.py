@@ -212,9 +212,30 @@ class DataCleaningTool:
         """Get log of all operations performed"""
         if not self.operations_log:
             return "No operations performed yet."
-        
+
         result = "Operations performed:\n"
         for i, op in enumerate(self.operations_log, 1):
             result += f"{i}. {op['operation']}: {op['rows_before']} → {op['rows_after']} rows\n"
-        
+
         return result
+
+    def validate_completion(self, required_operations: List[str]) -> str:
+        """Validate that all required operations have been performed"""
+        try:
+            if not required_operations:
+                return "No required operations specified."
+
+            performed_ops = [op['operation'] for op in self.operations_log]
+            missing_ops = []
+
+            for required_op in required_operations:
+                if required_op not in performed_ops:
+                    missing_ops.append(required_op)
+
+            if missing_ops:
+                return f"VALIDATION FAILED: You have NOT completed all required operations. Missing operations: {missing_ops}. You MUST execute these operations before claiming completion. Use the appropriate tools to perform these missing operations."
+            else:
+                return f"VALIDATION PASSED: All required operations have been performed successfully. Operations completed: {performed_ops}. You may now finish."
+
+        except Exception as e:
+            return f"Error during validation: {str(e)}"

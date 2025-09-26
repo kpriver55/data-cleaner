@@ -225,6 +225,14 @@ def main():
             ["qwen2.5:7b-instruct-q5_k_m", "llama3.1:8b-instruct-q5_k_M", "qwen2.5:14b-instruct-q4_k_m", "llama3.2:3b-instruct-q6_k"],
             help="Choose the LLM model for data cleaning decisions"
         )
+
+        # Model performance warning
+        if "3b" in model_choice.lower():
+            st.warning("⚠️ **Performance Note**: 3B parameter models may have difficulty with complex multi-step reasoning required for comprehensive data cleaning. For best results, use 7B+ parameter models.")
+        elif "7b" in model_choice.lower() or "8b" in model_choice.lower():
+            st.info("✅ **Good Choice**: 7B-8B models provide excellent balance of performance and resource usage for data cleaning tasks.")
+        elif "14b" in model_choice.lower():
+            st.success("🚀 **Excellent Choice**: 14B+ models provide superior reasoning capabilities for complex data cleaning scenarios.")
         
         # Cleaning options
         st.header("Cleaning Options")

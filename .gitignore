@@ -1,3 +1,8 @@
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+
 # Jupyter Notebooks
 *.ipynb
 .ipynb_checkpoints/
@@ -17,7 +22,6 @@
 
 # virtual environments
 *.venv
-
 
 #pycache
 __pycache__

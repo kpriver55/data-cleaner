@@ -57,14 +57,39 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 2. Set up Ollama (Local LLM)
-```bash
-# Install Ollama (visit https://ollama.ai for installation instructions)
-# Pull a recommended model
-ollama pull qwen2.5:7b-instruct-q5_k_m
+### 2. Configure LLM Provider
 
-# Start Ollama server
+The app supports both **local** (Ollama) and **cloud-based** LLM providers.
+
+#### Option A: Local LLM (Ollama) - Free & Private
+```bash
+# Install Ollama from https://ollama.ai
+ollama pull qwen2.5:7b-instruct-q5_k_m
 ollama serve  # Runs on localhost:11434
+```
+
+#### Option B: Cloud API Providers
+Set environment variables for your chosen provider:
+
+```bash
+# OpenAI
+export OPENAI_API_KEY="sk-..."
+
+# Anthropic Claude
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# Together AI
+export TOGETHER_API_KEY="..."
+
+# Anyscale
+export ANYSCALE_API_KEY="..."
+```
+
+Or create a `.env` file (see `.env.example`):
+```bash
+LLM_PROVIDER=openai
+LLM_MODEL=gpt-4o-mini
+OPENAI_API_KEY=sk-...
 ```
 
 ### 3. Launch the Web App
@@ -128,28 +153,58 @@ python main.py  # Run demo with sample data
 
 ## ⚙️ Configuration
 
-### 🤖 Model Selection
-The web app supports multiple LLM models through the sidebar:
-- **Qwen 2.5 7B** (Recommended): `qwen2.5:7b-instruct-q5_k_m`
-- **Llama 3.1 8B**: `llama3.1:8b-instruct-q5_k_M`
-- **Qwen 2.5 14B**: `qwen2.5:14b-instruct-q4_k_m` (Higher quality, slower)
-- **Llama 3.2 3B**: `llama3.2:3b-instruct-q6_k` (Faster, lower memory)
+### 🤖 LLM Provider Options
+
+The app supports multiple LLM providers configurable via the web UI or code:
+
+| Provider | Type | Configuration | Best For |
+|----------|------|---------------|----------|
+| **Ollama** | Local | Default, no API key needed | Privacy, no cost, offline |
+| **OpenAI** | Cloud API | Set `OPENAI_API_KEY` | Ease of use, quality |
+| **Anthropic Claude** | Cloud API | Set `ANTHROPIC_API_KEY` | Complex reasoning |
+| **Together AI** | Cloud API | Set `TOGETHER_API_KEY` | Fast inference |
+| **Anyscale** | Cloud API | Set `ANYSCALE_API_KEY` | Enterprise deployment |
+
+#### Web UI Configuration
+1. Select provider in sidebar
+2. Choose model
+3. Enter API key (or set via environment variable)
+4. Click "Initialize AI Agent"
+
+#### Programmatic Configuration
+```python
+from llm_config import setup_llm
+
+# Local Ollama (default)
+setup_llm("ollama", "qwen2.5:7b-instruct-q5_k_m")
+
+# OpenAI
+setup_llm("openai", "gpt-4o-mini")  # Reads OPENAI_API_KEY from env
+
+# Anthropic Claude
+setup_llm("anthropic", "claude-3-5-sonnet-20241022")
+
+# Environment-based (reads LLM_PROVIDER and LLM_MODEL)
+setup_llm()
+```
+
+#### Recommended Models
+- **Ollama**: `qwen2.5:7b-instruct-q5_k_m` (best balance)
+- **OpenAI**: `gpt-4o-mini` (cost-effective) or `gpt-4o` (highest quality)
+- **Anthropic**: `claude-3-5-sonnet-20241022` (complex tasks) or `claude-3-5-haiku-20241022` (fast)
 
 ### 🔧 Cleaning Options
-Configure cleaning behavior in the sidebar:
+Configure in the sidebar:
 - **Auto-execute high confidence operations**: Automatically apply safe transformations
 - **Conservative mode**: Prefer safer operations over aggressive cleaning
-- **Manual review**: Review AI recommendations before applying changes
 
-### 🐳 Ollama Setup
-Make sure Ollama is running with your chosen model:
-```bash
-# Pull your preferred model
-ollama pull qwen2.5:7b-instruct-q5_k_m
+### 🔐 Security Best Practices
+- ✅ **DO**: Store API keys in environment variables or `.env` files
+- ✅ **DO**: Add `.env` to `.gitignore` (already configured)
+- ❌ **DON'T**: Hardcode API keys in source code
+- ❌ **DON'T**: Commit `.env` files to version control
 
-# Ensure Ollama is running
-ollama serve  # Should be accessible at http://localhost:11434
-```
+See `.env.example` for configuration template.
 
 ## 📊 What You Get
 
@@ -232,13 +287,14 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## ⚠️ Requirements & Limitations
 
 ### 🔧 System Requirements
-- **Ollama**: Local LLM server must be running on `localhost:11434`
-- **Memory**: Recommend 8GB+ RAM for larger datasets and models
-- **Browser**: Modern web browser with JavaScript enabled
 - **Python**: 3.8+ with pip package management
+- **Memory**: 8GB+ RAM recommended for larger datasets
+- **Browser**: Modern web browser with JavaScript enabled
+- **LLM Provider**: Either:
+  - Ollama server running locally (free, private), OR
+  - API key for cloud provider (OpenAI, Anthropic, etc.)
 
 ### 📊 Data Limitations
 - **File Size**: Very large datasets (>100MB) may require chunking
 - **Model Performance**: Cleaning quality depends on chosen LLM model capabilities
 - **Domain Specific**: Complex industry-specific rules may need manual configuration
-- **Internet**: Requires local setup; no cloud processing for data privacy

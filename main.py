@@ -8,10 +8,20 @@ from file_io_tool import FileIOTool
 from stats_tool import StatisticalAnalysisTool
 from data_transformation_tool import DataTransformationTool
 from data_cleaning_agent import DataCleaningAgent
+from llm_config import setup_llm
 
-# Configure DSPy to use Ollama
-ollama_lm = dspy.LM("ollama_chat/llama3.2:3b-instruct-q6_k", api_base="http://localhost:11434", api_key="")
-dspy.settings.configure(lm=ollama_lm)
+# Configure DSPy LLM
+# Option 1: Use local Ollama (default)
+setup_llm("ollama", "llama3.2:3b-instruct-q6_k")
+
+# Option 2: Use environment variables (set LLM_PROVIDER and LLM_MODEL)
+# setup_llm()
+
+# Option 3: Use OpenAI
+# setup_llm("openai", "gpt-4o-mini", api_key="your-api-key")
+
+# Option 4: Use Anthropic Claude
+# setup_llm("anthropic", "claude-3-5-sonnet-20241022", api_key="your-api-key")
 
 
     

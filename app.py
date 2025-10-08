@@ -23,6 +23,7 @@ from data_transformation_tool import DataTransformationTool
 from data_cleaning_agent import DataCleaningAgent
 from signatures import DataAnalysisSignature, DataCleaningExecutionSignature
 from data_cleaning_tool import DataCleaningTool
+from llm_config import LLMConfig, LLMProvider
 
 
 # Configure Streamlit page
@@ -44,6 +45,8 @@ if 'cleaning_results' not in st.session_state:
     st.session_state.cleaning_results = None
 if 'original_filename' not in st.session_state:
     st.session_state.original_filename = None
+if 'llm_config' not in st.session_state:
+    st.session_state.llm_config = LLMConfig()
 
 def safe_convert_for_plotly(series_or_value):
     """
@@ -217,34 +220,127 @@ def main():
     
     # Sidebar for configuration
     with st.sidebar:
-        st.header("Configuration")
-        
-        # Model selection (if you want to make it configurable)
-        model_choice = st.selectbox(
-            "Select Model",
-            ["qwen2.5:7b-instruct-q5_k_m", "llama3.1:8b-instruct-q5_k_M", "qwen2.5:14b-instruct-q4_k_m", "llama3.2:3b-instruct-q6_k"],
-            help="Choose the LLM model for data cleaning decisions"
+        st.header("🤖 LLM Configuration")
+
+        # Provider selection
+        provider_choice = st.selectbox(
+            "LLM Provider",
+            ["Local (Ollama)", "OpenAI", "Anthropic Claude", "Together AI", "Anyscale"],
+            help="Choose between local or cloud-based LLM providers"
         )
 
-        # Model performance warning
-        if "3b" in model_choice.lower():
-            st.warning("⚠️ **Performance Note**: 3B parameter models may have difficulty with complex multi-step reasoning required for comprehensive data cleaning. For best results, use 7B+ parameter models.")
-        elif "7b" in model_choice.lower() or "8b" in model_choice.lower():
-            st.info("✅ **Good Choice**: 7B-8B models provide excellent balance of performance and resource usage for data cleaning tasks.")
-        elif "14b" in model_choice.lower():
-            st.success("🚀 **Excellent Choice**: 14B+ models provide superior reasoning capabilities for complex data cleaning scenarios.")
-        
+        # Provider-specific configuration
+        if provider_choice == "Local (Ollama)":
+            st.info("💻 Using local Ollama server")
+            model_choice = st.selectbox(
+                "Model",
+                ["qwen2.5:7b-instruct-q5_k_m", "llama3.1:8b-instruct-q5_k_M",
+                 "qwen2.5:14b-instruct-q4_k_m", "llama3.2:3b-instruct-q6_k"],
+                help="Choose the Ollama model for data cleaning"
+            )
+            ollama_base = st.text_input("Ollama API Base", value="http://localhost:11434")
+
+            # Model performance warning
+            if "3b" in model_choice.lower():
+                st.warning("⚠️ 3B models may struggle with complex reasoning")
+            elif "7b" in model_choice.lower() or "8b" in model_choice.lower():
+                st.info("✅ Good balance of performance and resource usage")
+            elif "14b" in model_choice.lower():
+                st.success("🚀 Superior reasoning capabilities")
+
+        elif provider_choice == "OpenAI":
+            st.info("☁️ Using OpenAI API")
+            model_choice = st.selectbox(
+                "Model",
+                ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"],
+                help="Choose the OpenAI model"
+            )
+            api_key_input = st.text_input("API Key", type="password",
+                                         help="Enter your OpenAI API key or set OPENAI_API_KEY environment variable")
+
+        elif provider_choice == "Anthropic Claude":
+            st.info("☁️ Using Anthropic Claude API")
+            model_choice = st.selectbox(
+                "Model",
+                ["claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022",
+                 "claude-3-opus-20240229", "claude-3-sonnet-20240229"],
+                help="Choose the Claude model"
+            )
+            api_key_input = st.text_input("API Key", type="password",
+                                         help="Enter your Anthropic API key or set ANTHROPIC_API_KEY environment variable")
+
+        elif provider_choice == "Together AI":
+            st.info("☁️ Using Together AI")
+            model_choice = st.text_input(
+                "Model",
+                value="meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+                help="Enter the Together AI model name"
+            )
+            api_key_input = st.text_input("API Key", type="password",
+                                         help="Enter your Together AI API key or set TOGETHER_API_KEY environment variable")
+
+        elif provider_choice == "Anyscale":
+            st.info("☁️ Using Anyscale Endpoints")
+            model_choice = st.text_input(
+                "Model",
+                value="meta-llama/Meta-Llama-3.1-8B-Instruct",
+                help="Enter the Anyscale model name"
+            )
+            api_key_input = st.text_input("API Key", type="password",
+                                         help="Enter your Anyscale API key or set ANYSCALE_API_KEY environment variable")
+
+        st.divider()
+
         # Cleaning options
-        st.header("Cleaning Options")
+        st.header("🧹 Cleaning Options")
         auto_execute = st.checkbox("Auto-execute high confidence operations", value=True)
         conservative_mode = st.checkbox("Conservative mode (safer operations)", value=True)
-        
+
+        st.divider()
+
         # Initialize agent
-        if st.button("Initialize AI Agent"):
+        if st.button("Initialize AI Agent", type="primary"):
             try:
-                ollama_lm = dspy.LM("ollama_chat/" + model_choice, api_base="http://localhost:11434", api_key="")
-                dspy.settings.configure(lm=ollama_lm)
+                # Configure LLM based on provider
+                if provider_choice == "Local (Ollama)":
+                    st.session_state.llm_config.configure_ollama(
+                        model=model_choice,
+                        api_base=ollama_base
+                    )
+                elif provider_choice == "OpenAI":
+                    api_key = api_key_input if api_key_input else None
+                    st.session_state.llm_config.configure_openai(
+                        model=model_choice,
+                        api_key=api_key
+                    )
+                elif provider_choice == "Anthropic Claude":
+                    api_key = api_key_input if api_key_input else None
+                    st.session_state.llm_config.configure_anthropic(
+                        model=model_choice,
+                        api_key=api_key
+                    )
+                elif provider_choice == "Together AI":
+                    api_key = api_key_input if api_key_input else None
+                    st.session_state.llm_config.configure_together(
+                        model=model_choice,
+                        api_key=api_key
+                    )
+                elif provider_choice == "Anyscale":
+                    api_key = api_key_input if api_key_input else None
+                    st.session_state.llm_config.configure_anyscale(
+                        model=model_choice,
+                        api_key=api_key
+                    )
+
+                # Initialize the cleaning agent
                 initialize_agent()
+
+                # Show current configuration
+                config_info = st.session_state.llm_config.get_current_config()
+                st.success(f"✅ Agent initialized with {config_info['provider']} / {config_info['model']}")
+
+            except ValueError as e:
+                st.error(f"Configuration error: {str(e)}")
             except Exception as e:
                 st.error(f"Error initializing agent: {str(e)}")
     

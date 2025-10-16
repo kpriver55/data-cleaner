@@ -34,3 +34,9 @@ debug_observer.py
 test_dspy_observer.py
 debug_traces
 dspy_traces
+
+# Optimization results and models
+/models
+/optimization_results
+*.pkl
+*.pickle

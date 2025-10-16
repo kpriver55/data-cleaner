@@ -1,10 +1,12 @@
 import dspy
 import pandas as pd
 import json
+import pickle
 from typing import Dict, Any, Optional, List
 from signatures import DataAnalysisSignature, DataCleaningExecutionSignature
 from data_cleaning_tool import DataCleaningTool
 from pathlib import Path
+from datetime import datetime
 
 class DataCleaningAgent(dspy.Module):
     """
@@ -284,3 +286,325 @@ Begin execution now. Remember: you must complete EVERY step in the plan, not jus
 """
         
         self.io_tool.write_markdown(report_content, report_path, title="Data Cleaning Report")
+
+    # ==================== Optimization Methods ====================
+
+    def compile_with_optimizer(
+        self,
+        config,  # OptimizationConfig from optimization module
+        verbose: bool = True
+    ):
+        """
+        Optimize the agent using DSPy optimizers
+
+        This method:
+        1. Loads the training dataset
+        2. Converts to DSPy examples
+        3. Splits into train/val sets
+        4. Creates evaluation metric
+        5. Runs optimizer on the analyzer module
+        6. Replaces self.analyzer with optimized version
+        7. Returns optimization results
+
+        Args:
+            config: OptimizationConfig with dataset path and optimizer settings
+            verbose: Whether to print progress
+
+        Returns:
+            OptimizationResult with metrics and metadata
+        """
+        from optimization import CleaningDataset, create_optimizer, dspy_metric
+        from optimization.optimizers import OptimizationResult
+        import time
+
+        if verbose:
+            print(f"\n{'='*60}")
+            print("DSPy Optimization")
+            print(f"{'='*60}")
+            print(f"Configuration: {config.name}")
+            print(f"Dataset: {config.dataset_path}")
+            print(f"Optimizer: {config.optimizer.optimizer_type}")
+
+        # Load dataset
+        if verbose:
+            print(f"\n📁 Loading dataset from {config.dataset_path}...")
+
+        if config.dataset_path.endswith('.json'):
+            dataset = CleaningDataset.from_json(config.dataset_path)
+        elif config.dataset_path.endswith(('.yaml', '.yml')):
+            dataset = CleaningDataset.from_yaml(config.dataset_path)
+        else:
+            raise ValueError(f"Unsupported dataset format: {config.dataset_path}")
+
+        # Validate dataset
+        errors = dataset.validate()
+        if errors:
+            print(f"❌ Dataset validation errors:")
+            for error in errors:
+                print(f"   - {error}")
+            raise ValueError("Dataset validation failed")
+
+        if verbose:
+            print(f"✅ Loaded {len(dataset)} examples")
+            summary = dataset.summary()
+            print(f"   Specification types: {summary['specification_types']}")
+
+        # Convert to DSPy examples
+        if verbose:
+            print(f"\n🔄 Converting to DSPy examples...")
+
+        dspy_examples = dataset.to_dspy_examples(self.io_tool)
+
+        if verbose:
+            print(f"✅ Converted {len(dspy_examples)} examples")
+
+        # Split into train/val
+        if config.train_ratio < 1.0 and len(dspy_examples) > 1:
+            split_idx = int(len(dspy_examples) * config.train_ratio)
+            trainset = dspy_examples[:split_idx]
+            valset = dspy_examples[split_idx:]
+
+            if verbose:
+                print(f"\n📊 Split: {len(trainset)} train, {len(valset)} validation")
+        else:
+            trainset = dspy_examples
+            valset = None
+
+            if verbose:
+                print(f"\n📊 Using all {len(trainset)} examples for training")
+
+        # Create metric
+        if verbose:
+            print(f"\n📏 Creating evaluation metric...")
+
+        metric = dspy_metric(self.io_tool, evaluator=None)  # Uses default evaluator
+
+        # Create optimizer
+        if verbose:
+            print(f"\n⚙️  Creating {config.optimizer.optimizer_type} optimizer...")
+
+        optimizer_wrapper = create_optimizer(config.optimizer)
+
+        # Run optimization
+        if verbose:
+            print(f"\n🚀 Running optimization...")
+            print(f"   This may take several minutes depending on:")
+            print(f"   - Number of examples: {len(trainset)}")
+            print(f"   - Optimizer type: {config.optimizer.optimizer_type}")
+            print(f"   - LLM speed and configuration")
+
+        start_time = time.time()
+
+        # Optimize the analyzer module (planning stage)
+        compiled_analyzer = optimizer_wrapper.optimize(
+            student_module=self.analyzer,
+            trainset=trainset,
+            metric=metric,
+            valset=valset,
+            verbose=verbose
+        )
+
+        duration = time.time() - start_time
+
+        # Replace analyzer with optimized version
+        self.analyzer = compiled_analyzer
+
+        # Evaluate on train and val sets
+        if verbose:
+            print(f"\n📊 Evaluating optimized model...")
+
+        train_scores = []
+        for example in trainset:
+            try:
+                prediction = self.analyzer(
+                    comprehensive_data_analysis=example.comprehensive_data_analysis
+                )
+                score = metric(example, prediction)
+                train_scores.append(score)
+            except Exception as e:
+                if verbose:
+                    print(f"   Warning: Error evaluating training example: {e}")
+                train_scores.append(0.0)
+
+        train_score = sum(train_scores) / len(train_scores) if train_scores else 0.0
+
+        val_score = None
+        if valset:
+            val_scores = []
+            for example in valset:
+                try:
+                    prediction = self.analyzer(
+                        comprehensive_data_analysis=example.comprehensive_data_analysis
+                    )
+                    score = metric(example, prediction)
+                    val_scores.append(score)
+                except Exception as e:
+                    if verbose:
+                        print(f"   Warning: Error evaluating validation example: {e}")
+                    val_scores.append(0.0)
+
+            val_score = sum(val_scores) / len(val_scores) if val_scores else 0.0
+
+        # Create result object
+        result = OptimizationResult(
+            compiled_module=compiled_analyzer,
+            config=config.optimizer,
+            train_score=train_score,
+            val_score=val_score,
+            train_size=len(trainset),
+            val_size=len(valset) if valset else 0,
+            duration_seconds=duration,
+            optimizer_stats=optimizer_wrapper.get_stats()
+        )
+
+        if verbose:
+            print(f"\n{result.summary()}")
+
+        return result
+
+    def evaluate_on_dataset(
+        self,
+        dataset,  # CleaningDataset
+        metric = None,  # Optional custom metric
+        verbose: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Evaluate agent performance on a dataset
+
+        Args:
+            dataset: CleaningDataset to evaluate on
+            metric: Optional custom metric (uses default if None)
+            verbose: Whether to print progress
+
+        Returns:
+            Dictionary with evaluation results
+        """
+        from optimization import dspy_metric
+
+        if verbose:
+            print(f"\n📊 Evaluating on {len(dataset)} examples...")
+
+        # Convert to DSPy examples
+        dspy_examples = dataset.to_dspy_examples(self.io_tool)
+
+        # Create metric if not provided
+        if metric is None:
+            metric = dspy_metric(self.io_tool)
+
+        # Evaluate each example
+        scores = []
+        details = []
+
+        for i, example in enumerate(dspy_examples):
+            if verbose and (i + 1) % 5 == 0:
+                print(f"   Progress: {i + 1}/{len(dspy_examples)}")
+
+            try:
+                # Generate prediction
+                prediction = self.analyzer(
+                    comprehensive_data_analysis=example.comprehensive_data_analysis
+                )
+
+                # Score it
+                score = metric(example, prediction)
+                scores.append(score)
+
+                details.append({
+                    'example_index': i,
+                    'score': score,
+                    'expected_plan': example.overall_cleaning_plan,
+                    'predicted_plan': prediction.overall_cleaning_plan,
+                    'success': True
+                })
+
+            except Exception as e:
+                if verbose:
+                    print(f"   Error on example {i}: {e}")
+                scores.append(0.0)
+                details.append({
+                    'example_index': i,
+                    'score': 0.0,
+                    'error': str(e),
+                    'success': False
+                })
+
+        # Calculate statistics
+        avg_score = sum(scores) / len(scores) if scores else 0.0
+        min_score = min(scores) if scores else 0.0
+        max_score = max(scores) if scores else 0.0
+
+        result = {
+            'average_score': avg_score,
+            'min_score': min_score,
+            'max_score': max_score,
+            'num_examples': len(scores),
+            'scores': scores,
+            'details': details
+        }
+
+        if verbose:
+            print(f"\n✅ Evaluation complete:")
+            print(f"   Average score: {avg_score:.4f}")
+            print(f"   Min score: {min_score:.4f}")
+            print(f"   Max score: {max_score:.4f}")
+
+        return result
+
+    def save_compiled_model(self, path: str, metadata: Optional[Dict[str, Any]] = None):
+        """
+        Save optimized model to file
+
+        Saves the compiled analyzer module and metadata to a pickle file.
+
+        Args:
+            path: Path to save model file
+            metadata: Optional metadata to include (e.g., config, metrics)
+        """
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        model_data = {
+            'version': '1.0',
+            'timestamp': datetime.now().isoformat(),
+            'analyzer': self.analyzer,
+            'metadata': metadata or {}
+        }
+
+        with open(path, 'wb') as f:
+            pickle.dump(model_data, f)
+
+        print(f"✅ Model saved to {path}")
+        print(f"   Version: {model_data['version']}")
+        print(f"   Timestamp: {model_data['timestamp']}")
+
+    @classmethod
+    def load_compiled_model(cls, path: str, io_tool, stats_tool, transform_tool):
+        """
+        Load optimized model from file
+
+        Args:
+            path: Path to model file
+            io_tool: FileIOTool instance
+            stats_tool: StatisticalAnalysisTool instance
+            transform_tool: DataTransformationTool instance
+
+        Returns:
+            DataCleaningAgent with loaded optimized analyzer
+        """
+        with open(path, 'rb') as f:
+            model_data = pickle.load(f)
+
+        # Create agent
+        agent = cls(io_tool, stats_tool, transform_tool)
+
+        # Replace analyzer with loaded version
+        agent.analyzer = model_data['analyzer']
+
+        print(f"✅ Model loaded from {path}")
+        print(f"   Version: {model_data['version']}")
+        print(f"   Timestamp: {model_data['timestamp']}")
+
+        if model_data['metadata']:
+            print(f"   Metadata keys: {list(model_data['metadata'].keys())}")
+
+        return agent

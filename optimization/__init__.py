@@ -31,6 +31,14 @@ from .config import (
     create_thorough_optimization_config,
     create_balanced_optimization_config
 )
+from .optimizers import (
+    OptimizerWrapper,
+    BootstrapFewShotOptimizer,
+    BootstrapFewShotWithRandomSearchOptimizer,
+    MIPROOptimizer,
+    create_optimizer,
+    OptimizationResult
+)
 
 __all__ = [
     # Dataset management
@@ -55,6 +63,14 @@ __all__ = [
     'create_quick_optimization_config',
     'create_thorough_optimization_config',
     'create_balanced_optimization_config',
+
+    # Optimizers
+    'OptimizerWrapper',
+    'BootstrapFewShotOptimizer',
+    'BootstrapFewShotWithRandomSearchOptimizer',
+    'MIPROOptimizer',
+    'create_optimizer',
+    'OptimizationResult',
 ]
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'

@@ -14,11 +14,12 @@
 *.ods
 *.json
 *.jsonl
-# Markdown files (except README)
+# Markdown files (except README and QUICKSTART)
 *.md
 !README.md
 !readme.md
 !Readme.md
+!QUICKSTART.md
 
 # virtual environments
 *.venv

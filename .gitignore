@@ -40,3 +40,10 @@ dspy_traces
 /optimization_results
 *.pkl
 *.pickle
+
+# Streamlit cache
+.streamlit/
+
+# Training data
+/training_data
+/configs

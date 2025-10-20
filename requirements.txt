@@ -22,3 +22,6 @@ typing_extensions>=4.15.0
 
 # Testing and optimization
 pytest>=7.4.0
+
+# CLI enhancement (optional but recommended)
+rich>=13.0.0

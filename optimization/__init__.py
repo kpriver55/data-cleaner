@@ -13,6 +13,7 @@ Main components:
 """
 
 from .benchmarking import Benchmark, BenchmarkMetrics, BenchmarkResult
+from .plan_inference import PlanInferenceEngine, infer_plan_from_files
 from .config import (
     EvaluationConfig,
     OptimizationConfig,
@@ -74,6 +75,9 @@ __all__ = [
     "Benchmark",
     "BenchmarkMetrics",
     "BenchmarkResult",
+    # Plan Inference
+    "PlanInferenceEngine",
+    "infer_plan_from_files",
 ]
 
 __version__ = "0.2.0"

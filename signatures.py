@@ -34,3 +34,18 @@ class DataAnalysisSignature(dspy.Signature):
 class DataCleaningExecutionSignature(dspy.Signature):
     task = dspy.InputField(desc="step-by-step plan for cleaning data, with specific operations")
     result = dspy.OutputField(desc="summary of the operations performed")
+
+
+class CleaningPlanInferenceSignature(dspy.Signature):
+    """Infer the data cleaning operations that were performed by comparing raw and cleaned datasets"""
+
+    raw_data_summary = dspy.InputField(
+        desc="Summary of the raw dataset including shape, columns, data types, sample rows, and data quality issues"
+    )
+    cleaned_data_summary = dspy.InputField(
+        desc="Summary of the cleaned dataset including shape, columns, data types, and sample rows"
+    )
+
+    cleaning_plan = dspy.OutputField(
+        desc="Step-by-step cleaning plan with specific function calls (remove_duplicates, handle_missing_values, remove_outliers, clean_text_columns, convert_data_types) that would transform the raw data to the cleaned data. Include exact parameters like column names, strategies, and thresholds."
+    )

@@ -23,7 +23,7 @@ class CleaningExample:
     Supports three levels of specification (in order of preference):
     A. Full plan specification (best quality - use for most important examples)
     B. Structured operations (good quality - balance of effort and quality)
-    C. Input/output comparison (TODO - not yet implemented)
+    C. Input/output comparison (easiest - auto-infers plan from cleaned output)
 
     Attributes:
         input_path: Path to the messy input dataset
@@ -39,8 +39,9 @@ class CleaningExample:
             - parameters: strategy/method/threshold etc.
             - rationale: why this operation is needed
 
-        # Option C: Provide expected output for comparison (TODO)
+        # Option C: Provide expected output for comparison (auto-infers plan)
         expected_output_path: Path to the expected cleaned dataset
+                              (plan will be auto-inferred by comparing with input)
 
         metadata: Additional metadata about the example
         description: Human-readable description of the cleaning task
@@ -55,7 +56,7 @@ class CleaningExample:
     # Option B: Structured operations (good)
     expected_operations: Optional[List[Dict[str, Any]]] = None
 
-    # Option C: Output comparison (TODO - not yet implemented)
+    # Option C: Output comparison (auto-infers plan)
     expected_output_path: Optional[str] = None
 
     # Additional metadata
@@ -72,11 +73,8 @@ class CleaningExample:
                 "expected_operations, or expected_output_path"
             )
 
-        # Validate that if plan is provided, rationale is also provided
-        if self.expected_cleaning_plan and not self.expected_rationale:
-            raise ValueError(
-                "If expected_cleaning_plan is provided, expected_rationale must also be provided"
-            )
+        # Note: Rationale is optional even when plan is provided
+        # (it's helpful but not required)
 
         # Validate structured operations format if provided
         if self.expected_operations:
@@ -108,7 +106,7 @@ class CleaningExample:
         Returns:
             'plan' (Option A), 'operations' (Option B), or 'output' (Option C)
         """
-        if self.expected_cleaning_plan and self.expected_rationale:
+        if self.expected_cleaning_plan:
             return "plan"
         elif self.expected_operations:
             return "operations"
@@ -417,27 +415,10 @@ Current data types: {json.dumps(dtypes_info, indent=2)}
         elif spec_type == "operations":
             return self._generate_plan_from_structured_ops(example.expected_operations, df)
 
-        # Priority 3: Auto-generate from input/output comparison (Option C - TODO)
+        # Priority 3: Auto-generate from input/output comparison (Option C)
         elif spec_type == "output":
-            # TODO: Implement automatic plan generation by comparing input and output datasets
-            # This would involve:
-            # 1. Loading both input_path and expected_output_path
-            # 2. Detecting differences (rows removed, values changed, types converted, etc.)
-            # 3. Inferring which operations were performed and their parameters
-            # 4. Generating a detailed plan that explains the transformations
-            #
-            # Challenges:
-            # - Determining operation order from final state
-            # - Distinguishing between similar operations (e.g., drop vs filter)
-            # - Inferring parameters (e.g., which imputation strategy was used)
-            # - Handling ambiguous cases where multiple operation sequences could produce same result
-            #
-            # This would be very valuable as it requires minimal manual specification,
-            # but is complex to implement correctly.
-            raise NotImplementedError(
-                "Automatic plan generation from input/output comparison (Option C) is not yet implemented. "
-                "Please use Option A (expected_cleaning_plan + expected_rationale) or "
-                "Option B (expected_operations) for now."
+            return self._generate_plan_from_output_comparison(
+                example.input_path, example.expected_output_path
             )
 
         else:
@@ -536,6 +517,51 @@ Current data types: {json.dumps(dtypes_info, indent=2)}
             rationale = f"Execute {len(operations)} cleaning operations in the specified order to improve data quality."
 
         return {"overall_cleaning_plan": overall_plan, "rationale": rationale}
+
+    def _generate_plan_from_output_comparison(
+        self, input_path: str, output_path: str
+    ) -> Dict[str, str]:
+        """
+        Generate cleaning plan by auto-diffing raw and cleaned datasets (Option C).
+
+        This uses an LLM to infer the cleaning operations by comparing the
+        raw input with the cleaned output.
+
+        Args:
+            input_path: Path to raw dataset
+            output_path: Path to cleaned dataset
+
+        Returns:
+            Dictionary with 'overall_cleaning_plan' and 'rationale'
+
+        Raises:
+            FileNotFoundError: If either file doesn't exist
+            ValueError: If plan inference fails
+        """
+        from optimization.plan_inference import PlanInferenceEngine
+
+        # Create inference engine (reuses io_tool if available)
+        engine = PlanInferenceEngine(io_tool=getattr(self, "_io_tool", None))
+
+        # Infer plan from comparison
+        try:
+            inferred_plan = engine.infer_cleaning_plan(
+                input_path, output_path, verbose=False  # Silent during dataset loading
+            )
+
+            # Return in expected format
+            # Note: Auto-inferred plans don't have separate rationale
+            return {
+                "overall_cleaning_plan": inferred_plan,
+                "rationale": "Plan automatically inferred from input/output comparison",
+            }
+
+        except Exception as e:
+            # Provide helpful error message
+            raise ValueError(
+                f"Failed to auto-infer cleaning plan from {input_path} -> {output_path}: {e}\n"
+                f"Tip: Ensure both files exist and are in a supported format (CSV/Excel)."
+            )
 
     def validate(self) -> List[str]:
         """

@@ -25,6 +25,7 @@ from optimization import (
     create_balanced_optimization_config,
     create_quick_optimization_config,
     create_thorough_optimization_config,
+    infer_plan_from_files,
 )
 from stats_tool import StatisticalAnalysisTool
 from utils import initialize_session_state
@@ -65,6 +66,7 @@ with tab1:
     **Specification Options:**
     - **Option A (Best)**: Provide full cleaning plan text and rationale
     - **Option B (Good)**: Provide structured operations list
+    - **Option C (Easiest)**: Provide before/after files - plan auto-inferred
     """
     )
 
@@ -143,6 +145,7 @@ with tab1:
 
             option_a = st.checkbox("Use Option A (Full Plan)")
             option_b = st.checkbox("Use Option B (Structured Operations)")
+            option_c = st.checkbox("Use Option C (Auto-infer from cleaned output)")
 
             if option_a:
                 expected_plan = st.text_area(
@@ -180,11 +183,28 @@ with tab1:
                     height=200,
                 )
 
+            if option_c:
+                st.markdown(
+                    "**Option C**: Upload cleaned output - plan will be automatically inferred"
+                )
+                st.info(
+                    "🤖 The system will use AI to analyze differences between raw and cleaned data to infer the cleaning operations."
+                )
+
+                cleaned_file = st.file_uploader(
+                    "Upload cleaned dataset",
+                    type=["csv", "xlsx", "xls"],
+                    key="new_example_cleaned",
+                    help="Upload the expected cleaned output corresponding to the input file",
+                )
+
             if st.button("Add Example"):
                 if input_file is None:
                     st.error("Please upload an input file")
-                elif not option_a and not option_b:
-                    st.error("Please select Option A or Option B")
+                elif not option_a and not option_b and not option_c:
+                    st.error("Please select Option A, Option B, or Option C")
+                elif option_c and cleaned_file is None:
+                    st.error("Please upload a cleaned dataset for Option C")
                 else:
                     try:
                         # Save input file
@@ -212,6 +232,37 @@ with tab1:
                             except json.JSONDecodeError as e:
                                 st.error(f"Invalid JSON for operations: {e}")
                                 st.stop()
+
+                        if option_c:
+                            # Save cleaned output file
+                            output_dir = Path("training_data/outputs")
+                            output_dir.mkdir(parents=True, exist_ok=True)
+                            cleaned_path = output_dir / cleaned_file.name
+
+                            with open(cleaned_path, "wb") as f:
+                                f.write(cleaned_file.read())
+
+                            # Auto-infer plan using Option C
+                            with st.spinner("🤖 Inferring cleaning plan from data comparison..."):
+                                try:
+                                    inferred = infer_plan_from_files(
+                                        str(input_path), str(cleaned_path), verbose=False
+                                    )
+                                    example_data["expected_cleaning_plan"] = inferred[
+                                        "expected_cleaning_plan"
+                                    ]
+                                    example_data["expected_rationale"] = (
+                                        "Auto-inferred from input/output comparison"
+                                    )
+
+                                    # Show the inferred plan
+                                    st.success("✅ Plan inferred successfully!")
+                                    with st.expander("View Inferred Plan"):
+                                        st.code(inferred["expected_cleaning_plan"])
+
+                                except Exception as e:
+                                    st.error(f"Failed to infer plan: {e}")
+                                    st.stop()
 
                         example = CleaningExample(**example_data)
                         st.session_state.optimization_dataset.add_example(example)
@@ -241,6 +292,14 @@ with tab1:
                     if example.expected_operations:
                         st.write("**Expected Operations:**")
                         st.json(example.expected_operations)
+
+                    if example.expected_output_path:
+                        st.write(f"**Expected Output:** {example.expected_output_path}")
+                        if (
+                            example.expected_rationale
+                            == "Auto-inferred from input/output comparison"
+                        ):
+                            st.caption("🤖 Plan was auto-inferred using Option C")
 
         # Download dataset
         st.divider()

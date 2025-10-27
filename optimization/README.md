@@ -72,16 +72,24 @@ example = CleaningExample(
 )
 ```
 
-**Option C: Input/Output Comparison (TODO - Not Yet Implemented)**
+**Option C: Input/Output Comparison (Easiest - Auto-inferred)**
 
 ```python
-# Future: Auto-generate plan by comparing input and output
+# Automatically infer plan by comparing raw and cleaned data
 example = CleaningExample(
-    input_path="data/messy.csv",
-    expected_output_path="data/clean.csv",
+    input_path="data/raw.csv",
+    expected_output_path="data/cleaned.csv",
     description="Clean customer data"
 )
+
+# Or use the convenience function
+from optimization import infer_plan_from_files
+
+result = infer_plan_from_files("data/raw.csv", "data/cleaned.csv")
+example = CleaningExample(input_path="data/raw.csv", **result)
 ```
+
+**Note**: Option C uses an LLM to automatically infer the cleaning steps by analyzing differences between raw and cleaned datasets. This is the easiest approach (just provide before/after files) but may produce less accurate plans than manually specified options A or B. It's great for getting started quickly!
 
 #### CleaningDataset
 
@@ -302,9 +310,26 @@ We support three levels of specification (A, B, C) to give users flexibility:
 
 - **Option A (Full Plan)**: Best quality, most control, but requires manual effort
 - **Option B (Structured Ops)**: Good balance of quality and ease of creation
-- **Option C (Input/Output)**: Easiest to create, but not yet implemented (complex to infer plans automatically)
+- **Option C (Input/Output)**: Easiest to create using auto-diff, but may be less accurate
 
-This design lets users choose their effort level while ensuring quality training data.
+**How Option C Works:**
+
+Option C uses a simple LLM-based approach to infer cleaning operations:
+1. Loads both raw and cleaned datasets
+2. Summarizes each dataset (shape, columns, types, sample data, quality issues)
+3. Asks an LLM to infer what operations were performed
+4. Returns the inferred plan in the expected format
+
+**Limitations**: This is a starting point that focuses on functionality over accuracy. The LLM may:
+- Miss subtle transformations
+- Infer incorrect parameter values
+- Get operation order wrong
+- Struggle with complex multi-step cleanings
+
+Despite these limitations, Option C is valuable for:
+- Quickly bootstrapping a training dataset
+- Cases where you have before/after examples but no documentation
+- Iterative refinement (start with Option C, manually improve to A/B)
 
 ## File Structure
 
@@ -315,6 +340,7 @@ optimization/
 ├── evaluators.py            # Evaluation metrics
 ├── config.py                # Configuration management
 ├── optimizers.py            # Optimizer wrappers
+├── plan_inference.py        # Auto-diff plan inference (Option C)
 ├── benchmarking.py          # Performance benchmarking tools
 ├── benchmark_analysis.py    # Analysis and visualization tools
 ├── test_evaluators.py       # Unit tests

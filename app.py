@@ -5,6 +5,7 @@ Multi-page Streamlit application for AI-powered data cleaning and optimization.
 """
 
 import streamlit as st
+
 from utils import initialize_session_state
 
 # Configure page
@@ -12,7 +13,7 @@ st.set_page_config(
     page_title="AI Data Cleaning Assistant",
     page_icon="🧹",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 # Initialize session state
@@ -22,7 +23,8 @@ initialize_session_state()
 st.title("🧹 AI Data Cleaning Assistant")
 st.markdown("### Welcome to your intelligent data cleaning companion!")
 
-st.markdown("""
+st.markdown(
+    """
 This application uses Large Language Models (LLMs) to automatically analyze, plan,
 and execute data cleaning operations on your datasets.
 
@@ -58,12 +60,14 @@ Use the sidebar to navigate between:
 ---
 
 👈 Select a page from the sidebar to begin!
-""")
+"""
+)
 
 # Sidebar info
 with st.sidebar:
     st.header("ℹ️ About")
-    st.markdown("""
+    st.markdown(
+        """
     This app uses:
     - **DSPy** framework for LLM programming
     - **ReAct** pattern for agent reasoning
@@ -74,7 +78,8 @@ with st.sidebar:
     **Quick Links:**
     - [Documentation](https://github.com/anthropics/claude-code)
     - [Report Issues](https://github.com/anthropics/claude-code/issues)
-    """)
+    """
+    )
 
     # Show current LLM configuration if available
     if st.session_state.llm_config and st.session_state.llm_config.lm is not None:

@@ -18,15 +18,12 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from file_io_tool import FileIOTool
-from stats_tool import StatisticalAnalysisTool
-from data_transformation_tool import DataTransformationTool
 from data_cleaning_agent import DataCleaningAgent
+from data_transformation_tool import DataTransformationTool
+from file_io_tool import FileIOTool
 from llm_config import setup_llm
-from optimization import (
-    create_balanced_optimization_config,
-    CleaningDataset
-)
+from optimization import CleaningDataset, create_balanced_optimization_config
+from stats_tool import StatisticalAnalysisTool
 
 
 def main():
@@ -70,7 +67,7 @@ def main():
     config = create_balanced_optimization_config(
         name="example_optimization",
         dataset_path=dataset_path,
-        description="Example optimization run"
+        description="Example optimization run",
     )
 
     print(f"✅ Configuration created:")
@@ -100,11 +97,7 @@ def main():
     Path("models").mkdir(exist_ok=True)
 
     agent.save_compiled_model(
-        model_path,
-        metadata={
-            'config': config.to_dict(),
-            'result': result.to_dict()
-        }
+        model_path, metadata={"config": config.to_dict(), "result": result.to_dict()}
     )
     print(f"✅ Model saved to {model_path}")
 
@@ -112,10 +105,7 @@ def main():
     print("\n📌 Step 6: Testing model loading...")
 
     loaded_agent = DataCleaningAgent.load_compiled_model(
-        model_path,
-        io_tool,
-        stats_tool,
-        transform_tool
+        model_path, io_tool, stats_tool, transform_tool
     )
     print("✅ Model loaded successfully")
 

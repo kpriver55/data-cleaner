@@ -6,6 +6,15 @@ This module provides tools for optimizing the data cleaning agent using DSPy's o
 
 The optimization module allows you to improve the data cleaning agent's performance by training it on examples of your data cleaning tasks. Instead of using hardcoded prompts, you can optimize the agent to produce better cleaning plans based on your specific use cases.
 
+**Key Features:**
+
+- 📊 **Dataset Management**: Create and manage training examples
+- 🎯 **Multiple Evaluators**: Assess plan quality from different angles
+- ⚙️ **Flexible Configuration**: Preset and custom optimization settings
+- 🚀 **Multiple Optimizers**: BootstrapFewShot, MIPRO, and more
+- 📈 **Benchmarking Tools**: Compare configurations and measure performance
+- 💻 **CLI & Web UI**: Use command-line or Streamlit interface
+
 ## Phase 1: Core Infrastructure (✅ Completed)
 
 Phase 1 provides the foundation for DSPy optimization:
@@ -26,6 +35,7 @@ Manages training and test examples for optimization.
 Represents a single training example. Supports three specification levels:
 
 **Option A: Full Plan Specification (Best Quality)**
+
 ```python
 from optimization import CleaningExample
 
@@ -40,6 +50,7 @@ example = CleaningExample(
 ```
 
 **Option B: Structured Operations (Good Quality)**
+
 ```python
 example = CleaningExample(
     input_path="data/messy.csv",
@@ -62,6 +73,7 @@ example = CleaningExample(
 ```
 
 **Option C: Input/Output Comparison (TODO - Not Yet Implemented)**
+
 ```python
 # Future: Auto-generate plan by comparing input and output
 example = CleaningExample(
@@ -302,10 +314,57 @@ optimization/
 ├── dataset.py               # Training example management
 ├── evaluators.py            # Evaluation metrics
 ├── config.py                # Configuration management
+├── optimizers.py            # Optimizer wrappers
+├── benchmarking.py          # Performance benchmarking tools
+├── benchmark_analysis.py    # Analysis and visualization tools
 ├── test_evaluators.py       # Unit tests
+├── cli.py                   # Command-line interface
 ├── README.md                # This file
-└── optimizers.py            # TODO: Phase 2 - Optimizer wrappers
+├── QUICKSTART.md            # Quick start guide
+└── CLI_GUIDE.md             # CLI usage guide
 ```
+
+## Benchmarking
+
+Compare different optimization configurations to find the best setup for your use case.
+
+### Quick Start
+
+```bash
+# Run benchmark comparing multiple configurations
+python examples/run_benchmarks.py
+
+# Analyze results
+python optimization/benchmark_analysis.py benchmarks/benchmark_results.json
+```
+
+### Programmatic Usage
+
+```python
+from optimization import Benchmark, OptimizationConfig
+
+# Create benchmark
+benchmark = Benchmark(output_dir=Path("benchmarks"))
+
+# Define configurations to compare
+configs = [
+    OptimizationConfig(name="quick", max_bootstrapped_demos=2),
+    OptimizationConfig(name="balanced", max_bootstrapped_demos=4),
+    OptimizationConfig(name="thorough", max_bootstrapped_demos=8),
+]
+
+# Run benchmarks
+results = benchmark.run_multiple_benchmarks(
+    agent=agent,
+    configs=configs,
+    test_dataset=test_dataset
+)
+
+# View comparison
+benchmark.print_comparison()
+```
+
+See [Benchmarking Guide](../docs/BENCHMARKING.md) for detailed instructions.
 
 ## Contributing
 

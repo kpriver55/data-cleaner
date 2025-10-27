@@ -6,12 +6,13 @@ Supports loading examples from various formats and creating DSPy Example objects
 """
 
 import json
-import yaml
-import pandas as pd
-from pathlib import Path
-from typing import List, Dict, Any, Optional, Union
 from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
+
 import dspy
+import pandas as pd
+import yaml
 
 
 @dataclass
@@ -44,6 +45,7 @@ class CleaningExample:
         metadata: Additional metadata about the example
         description: Human-readable description of the cleaning task
     """
+
     input_path: str
 
     # Option A: Full plan specification (best)
@@ -62,11 +64,9 @@ class CleaningExample:
 
     def __post_init__(self):
         """Validate that at least one expected output is provided"""
-        if not any([
-            self.expected_cleaning_plan,
-            self.expected_operations,
-            self.expected_output_path
-        ]):
+        if not any(
+            [self.expected_cleaning_plan, self.expected_operations, self.expected_output_path]
+        ):
             raise ValueError(
                 "Must provide at least one of: expected_cleaning_plan, "
                 "expected_operations, or expected_output_path"
@@ -81,23 +81,23 @@ class CleaningExample:
         # Validate structured operations format if provided
         if self.expected_operations:
             for i, op in enumerate(self.expected_operations):
-                if 'operation' not in op:
+                if "operation" not in op:
                     raise ValueError(f"Operation {i} missing required 'operation' field")
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary format"""
         return {
-            'input_path': self.input_path,
-            'expected_cleaning_plan': self.expected_cleaning_plan,
-            'expected_rationale': self.expected_rationale,
-            'expected_operations': self.expected_operations,
-            'expected_output_path': self.expected_output_path,
-            'metadata': self.metadata,
-            'description': self.description
+            "input_path": self.input_path,
+            "expected_cleaning_plan": self.expected_cleaning_plan,
+            "expected_rationale": self.expected_rationale,
+            "expected_operations": self.expected_operations,
+            "expected_output_path": self.expected_output_path,
+            "metadata": self.metadata,
+            "description": self.description,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'CleaningExample':
+    def from_dict(cls, data: Dict[str, Any]) -> "CleaningExample":
         """Create from dictionary"""
         return cls(**data)
 
@@ -109,13 +109,13 @@ class CleaningExample:
             'plan' (Option A), 'operations' (Option B), or 'output' (Option C)
         """
         if self.expected_cleaning_plan and self.expected_rationale:
-            return 'plan'
+            return "plan"
         elif self.expected_operations:
-            return 'operations'
+            return "operations"
         elif self.expected_output_path:
-            return 'output'
+            return "output"
         else:
-            return 'unknown'
+            return "unknown"
 
 
 class CleaningDataset:
@@ -148,7 +148,7 @@ class CleaningDataset:
         """Iterate over examples"""
         return iter(self.examples)
 
-    def split(self, train_ratio: float = 0.8) -> tuple['CleaningDataset', 'CleaningDataset']:
+    def split(self, train_ratio: float = 0.8) -> tuple["CleaningDataset", "CleaningDataset"]:
         """
         Split dataset into train and test sets
 
@@ -168,7 +168,7 @@ class CleaningDataset:
         return CleaningDataset(train_examples), CleaningDataset(test_examples)
 
     @classmethod
-    def from_json(cls, json_path: Union[str, Path]) -> 'CleaningDataset':
+    def from_json(cls, json_path: Union[str, Path]) -> "CleaningDataset":
         """
         Load dataset from JSON file
 
@@ -217,14 +217,14 @@ class CleaningDataset:
             CleaningDataset object
         """
         json_path = Path(json_path)
-        with open(json_path, 'r') as f:
+        with open(json_path, "r") as f:
             data = json.load(f)
 
-        examples = [CleaningExample.from_dict(ex) for ex in data.get('examples', [])]
+        examples = [CleaningExample.from_dict(ex) for ex in data.get("examples", [])]
         return cls(examples)
 
     @classmethod
-    def from_yaml(cls, yaml_path: Union[str, Path]) -> 'CleaningDataset':
+    def from_yaml(cls, yaml_path: Union[str, Path]) -> "CleaningDataset":
         """
         Load dataset from YAML file
 
@@ -237,10 +237,10 @@ class CleaningDataset:
             CleaningDataset object
         """
         yaml_path = Path(yaml_path)
-        with open(yaml_path, 'r') as f:
+        with open(yaml_path, "r") as f:
             data = yaml.safe_load(f)
 
-        examples = [CleaningExample.from_dict(ex) for ex in data.get('examples', [])]
+        examples = [CleaningExample.from_dict(ex) for ex in data.get("examples", [])]
         return cls(examples)
 
     def to_json(self, json_path: Union[str, Path]):
@@ -251,12 +251,10 @@ class CleaningDataset:
             json_path: Path to save JSON file
         """
         json_path = Path(json_path)
-        data = {
-            'examples': [ex.to_dict() for ex in self.examples]
-        }
+        data = {"examples": [ex.to_dict() for ex in self.examples]}
 
         json_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(json_path, 'w') as f:
+        with open(json_path, "w") as f:
             json.dump(data, f, indent=2)
 
     def to_yaml(self, yaml_path: Union[str, Path]):
@@ -267,12 +265,10 @@ class CleaningDataset:
             yaml_path: Path to save YAML file
         """
         yaml_path = Path(yaml_path)
-        data = {
-            'examples': [ex.to_dict() for ex in self.examples]
-        }
+        data = {"examples": [ex.to_dict() for ex in self.examples]}
 
         yaml_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(yaml_path, 'w') as f:
+        with open(yaml_path, "w") as f:
             yaml.dump(data, f, default_flow_style=False)
 
     def to_dspy_examples(self, io_tool) -> List[dspy.Example]:
@@ -315,9 +311,9 @@ class CleaningDataset:
             # Create DSPy Example with inputs marked
             dspy_example = dspy.Example(
                 comprehensive_data_analysis=comprehensive_analysis,
-                overall_cleaning_plan=expected_plan['overall_cleaning_plan'],
-                rationale=expected_plan['rationale']
-            ).with_inputs('comprehensive_data_analysis')
+                overall_cleaning_plan=expected_plan["overall_cleaning_plan"],
+                rationale=expected_plan["rationale"],
+            ).with_inputs("comprehensive_data_analysis")
 
             dspy_examples.append(dspy_example)
 
@@ -343,9 +339,9 @@ class CleaningDataset:
             missing_count = df[col].isna().sum()
             if missing_count > 0:
                 missing_info[col] = {
-                    'count': int(missing_count),
-                    'percentage': round((missing_count / len(df)) * 100, 2),
-                    'dtype': str(df[col].dtype)
+                    "count": int(missing_count),
+                    "percentage": round((missing_count / len(df)) * 100, 2),
+                    "dtype": str(df[col].dtype),
                 }
 
         # Get data type information
@@ -363,14 +359,14 @@ class CleaningDataset:
                 return {key: convert_numpy_types(value) for key, value in obj.items()}
             elif isinstance(obj, list):
                 return [convert_numpy_types(item) for item in obj]
-            elif hasattr(obj, 'item'):  # numpy scalar
+            elif hasattr(obj, "item"):  # numpy scalar
                 return obj.item()
             elif isinstance(obj, (pd.Timestamp, pd.Timedelta)):
                 return str(obj)
             else:
                 return obj
 
-        column_stats = convert_numpy_types(summary_report['column_statistics'])
+        column_stats = convert_numpy_types(summary_report["column_statistics"])
         sample_data = convert_numpy_types(sample_data)
 
         # Build comprehensive analysis string
@@ -411,18 +407,18 @@ Current data types: {json.dumps(dtypes_info, indent=2)}
         spec_type = example.get_specification_type()
 
         # Priority 1: Use human-provided plan (Option A - best quality)
-        if spec_type == 'plan':
+        if spec_type == "plan":
             return {
-                'overall_cleaning_plan': example.expected_cleaning_plan,
-                'rationale': example.expected_rationale
+                "overall_cleaning_plan": example.expected_cleaning_plan,
+                "rationale": example.expected_rationale,
             }
 
         # Priority 2: Generate detailed plan from structured operations (Option B - good quality)
-        elif spec_type == 'operations':
+        elif spec_type == "operations":
             return self._generate_plan_from_structured_ops(example.expected_operations, df)
 
         # Priority 3: Auto-generate from input/output comparison (Option C - TODO)
-        elif spec_type == 'output':
+        elif spec_type == "output":
             # TODO: Implement automatic plan generation by comparing input and output datasets
             # This would involve:
             # 1. Loading both input_path and expected_output_path
@@ -448,9 +444,7 @@ Current data types: {json.dumps(dtypes_info, indent=2)}
             raise ValueError(f"Unknown specification type: {spec_type}")
 
     def _generate_plan_from_structured_ops(
-        self,
-        operations: List[Dict[str, Any]],
-        df: pd.DataFrame
+        self, operations: List[Dict[str, Any]], df: pd.DataFrame
     ) -> Dict[str, str]:
         """
         Generate a detailed cleaning plan from structured operation specifications
@@ -466,75 +460,82 @@ Current data types: {json.dumps(dtypes_info, indent=2)}
         rationale_lines = []
 
         for i, op_spec in enumerate(operations, 1):
-            operation = op_spec['operation']
+            operation = op_spec["operation"]
 
             # Build parameter string based on what's provided
             params = []
 
             # Extract common parameters
-            if 'columns' in op_spec:
-                columns = op_spec['columns']
+            if "columns" in op_spec:
+                columns = op_spec["columns"]
                 if columns:  # Only add if not empty
                     params.append(f"columns={columns}")
 
             # Operation-specific parameters
-            if operation == 'handle_missing_values':
-                if 'numeric_strategy' in op_spec:
+            if operation == "handle_missing_values":
+                if "numeric_strategy" in op_spec:
                     params.append(f"numeric_strategy='{op_spec['numeric_strategy']}'")
-                if 'categorical_strategy' in op_spec:
+                if "categorical_strategy" in op_spec:
                     params.append(f"categorical_strategy='{op_spec['categorical_strategy']}'")
 
-            elif operation == 'remove_duplicates':
-                if 'subset' in op_spec:
+            elif operation == "remove_duplicates":
+                if "subset" in op_spec:
                     params.append(f"subset={op_spec['subset']}")
-                if 'keep' in op_spec:
+                if "keep" in op_spec:
                     params.append(f"keep='{op_spec['keep']}'")
 
-            elif operation == 'remove_outliers':
-                if 'method' in op_spec:
+            elif operation == "remove_outliers":
+                if "method" in op_spec:
                     params.append(f"method='{op_spec['method']}'")
-                if 'threshold' in op_spec:
+                if "threshold" in op_spec:
                     params.append(f"threshold={op_spec['threshold']}")
 
-            elif operation == 'clean_text_columns':
-                if 'operations' in op_spec:
+            elif operation == "clean_text_columns":
+                if "operations" in op_spec:
                     params.append(f"operations={op_spec['operations']}")
 
-            elif operation == 'convert_data_types':
-                if 'type_conversions' in op_spec:
+            elif operation == "convert_data_types":
+                if "type_conversions" in op_spec:
                     params.append(f"type_conversions={op_spec['type_conversions']}")
 
             # Add any other custom parameters
             for key, value in op_spec.items():
-                if key not in ['operation', 'columns', 'rationale', 'numeric_strategy',
-                               'categorical_strategy', 'subset', 'keep', 'method',
-                               'threshold', 'operations', 'type_conversions']:
+                if key not in [
+                    "operation",
+                    "columns",
+                    "rationale",
+                    "numeric_strategy",
+                    "categorical_strategy",
+                    "subset",
+                    "keep",
+                    "method",
+                    "threshold",
+                    "operations",
+                    "type_conversions",
+                ]:
                     if isinstance(value, str):
                         params.append(f"{key}='{value}'")
                     else:
                         params.append(f"{key}={value}")
 
             # Build the operation line
-            params_str = ', '.join(params)
+            params_str = ", ".join(params)
             operation_line = f"{i}. {operation}({params_str})"
             plan_lines.append(operation_line)
 
             # Add rationale if provided
-            if 'rationale' in op_spec and op_spec['rationale']:
+            if "rationale" in op_spec and op_spec["rationale"]:
                 rationale_lines.append(f"Step {i}: {op_spec['rationale']}")
 
-        overall_plan = '\n'.join(plan_lines)
+        overall_plan = "\n".join(plan_lines)
 
         # Build comprehensive rationale
         if rationale_lines:
-            rationale = '\n'.join(rationale_lines)
+            rationale = "\n".join(rationale_lines)
         else:
             rationale = f"Execute {len(operations)} cleaning operations in the specified order to improve data quality."
 
-        return {
-            'overall_cleaning_plan': overall_plan,
-            'rationale': rationale
-        }
+        return {"overall_cleaning_plan": overall_plan, "rationale": rationale}
 
     def validate(self) -> List[str]:
         """
@@ -558,7 +559,7 @@ Current data types: {json.dumps(dtypes_info, indent=2)}
 
             # Validate specification type
             spec_type = example.get_specification_type()
-            if spec_type == 'unknown':
+            if spec_type == "unknown":
                 errors.append(
                     f"Example {i}: Could not determine specification type. "
                     "Provide expected_cleaning_plan, expected_operations, or expected_output_path."
@@ -573,7 +574,7 @@ Current data types: {json.dumps(dtypes_info, indent=2)}
             # Validate Option B (structured operations)
             if example.expected_operations:
                 for j, op in enumerate(example.expected_operations):
-                    if 'operation' not in op:
+                    if "operation" not in op:
                         errors.append(f"Example {i}, Operation {j}: Missing 'operation' field")
 
         return errors
@@ -585,20 +586,15 @@ Current data types: {json.dumps(dtypes_info, indent=2)}
         Returns:
             Dictionary with summary information
         """
-        spec_types = {
-            'plan': 0,
-            'operations': 0,
-            'output': 0,
-            'unknown': 0
-        }
+        spec_types = {"plan": 0, "operations": 0, "output": 0, "unknown": 0}
 
         for example in self.examples:
             spec_type = example.get_specification_type()
             spec_types[spec_type] = spec_types.get(spec_type, 0) + 1
 
         return {
-            'total_examples': len(self.examples),
-            'specification_types': spec_types,
-            'examples_with_description': sum(1 for ex in self.examples if ex.description),
-            'examples_with_metadata': sum(1 for ex in self.examples if ex.metadata)
+            "total_examples": len(self.examples),
+            "specification_types": spec_types,
+            "examples_with_description": sum(1 for ex in self.examples if ex.description),
+            "examples_with_metadata": sum(1 for ex in self.examples if ex.metadata),
         }

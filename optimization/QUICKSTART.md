@@ -245,12 +245,15 @@ print("✅ Ready for optimization (Phase 2 coming soon)!")
 ## Troubleshooting
 
 ### "Input file does not exist"
+
 Make sure your `input_path` in examples points to actual CSV files. Use relative or absolute paths.
 
 ### "Could not load dataset"
+
 Check your JSON syntax. Use a JSON validator if needed.
 
 ### "Must provide expected_cleaning_plan or expected_operations"
+
 Each example needs at least one specification method (Option A or B).
 
 ## Next Steps

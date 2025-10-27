@@ -14,12 +14,14 @@
 *.ods
 *.json
 *.jsonl
-# Markdown files (except README and QUICKSTART)
+# Markdown files (except README, QUICKSTART, and docs/)
 *.md
 !README.md
 !readme.md
 !Readme.md
 !QUICKSTART.md
+!CLI_GUIDE.md
+!docs/*.md
 
 # virtual environments
 *.venv
@@ -41,9 +43,27 @@ dspy_traces
 *.pkl
 *.pickle
 
+# Benchmarking results
+/benchmarks
+*.benchmark.json
+
 # Streamlit cache
 .streamlit/
+
+# Backup files
+app_old.py
 
 # Training data
 /training_data
 /configs
+
+# Testing and CI/CD artifacts
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.tox/
+*.cover
+*.py,cover
+.hypothesis/

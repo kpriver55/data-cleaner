@@ -4,18 +4,20 @@ Unit tests for evaluation metrics
 Run with: python -m pytest optimization/test_evaluators.py -v
 """
 
-import pytest
-import dspy
 from unittest.mock import Mock
+
+import dspy
+import pytest
+
 from optimization.evaluators import (
+    ColumnSpecificityEvaluator,
+    CompositeEvaluator,
     OperationPresenceEvaluator,
     ParameterAccuracyEvaluator,
-    ColumnSpecificityEvaluator,
     PlanStructureEvaluator,
-    CompositeEvaluator,
+    binary_metric,
     create_default_evaluator,
     dspy_metric,
-    binary_metric
 )
 
 
@@ -33,8 +35,8 @@ def sample_example():
         overall_cleaning_plan="""1. remove_duplicates(subset=['id', 'email'], keep='first')
 2. handle_missing_values(columns=['age', 'salary'], numeric_strategy='median')
 3. clean_text_columns(columns=['email'], operations=['strip', 'lower'])""",
-        rationale="Remove duplicates, impute missing values, and normalize text"
-    ).with_inputs('comprehensive_data_analysis')
+        rationale="Remove duplicates, impute missing values, and normalize text",
+    ).with_inputs("comprehensive_data_analysis")
 
 
 class TestOperationPresenceEvaluator:
@@ -81,8 +83,8 @@ class TestOperationPresenceEvaluator:
         example = dspy.Example(
             comprehensive_data_analysis="Sample",
             overall_cleaning_plan="No specific operations needed",
-            rationale="Data is already clean"
-        ).with_inputs('comprehensive_data_analysis')
+            rationale="Data is already clean",
+        ).with_inputs("comprehensive_data_analysis")
 
         prediction = Mock()
         prediction.overall_cleaning_plan = "Nothing to do"
@@ -111,8 +113,8 @@ class TestParameterAccuracyEvaluator:
         example = dspy.Example(
             comprehensive_data_analysis="Sample",
             overall_cleaning_plan="1. handle_missing_values(numeric_strategy='median', categorical_strategy='most_frequent')",
-            rationale="Impute with median"
-        ).with_inputs('comprehensive_data_analysis')
+            rationale="Impute with median",
+        ).with_inputs("comprehensive_data_analysis")
 
         prediction = Mock()
         prediction.overall_cleaning_plan = "1. handle_missing_values()"
@@ -127,8 +129,8 @@ class TestParameterAccuracyEvaluator:
         example = dspy.Example(
             comprehensive_data_analysis="Sample",
             overall_cleaning_plan="1. remove_duplicates()",
-            rationale="Remove duplicates"
-        ).with_inputs('comprehensive_data_analysis')
+            rationale="Remove duplicates",
+        ).with_inputs("comprehensive_data_analysis")
 
         prediction = Mock()
         prediction.overall_cleaning_plan = "1. remove_duplicates()"
@@ -147,8 +149,8 @@ class TestColumnSpecificityEvaluator:
         example = dspy.Example(
             comprehensive_data_analysis="Sample",
             overall_cleaning_plan="1. handle_missing_values(columns=['age', 'salary'])",
-            rationale="Handle missing"
-        ).with_inputs('comprehensive_data_analysis')
+            rationale="Handle missing",
+        ).with_inputs("comprehensive_data_analysis")
 
         prediction = Mock()
         prediction.overall_cleaning_plan = "1. handle_missing_values(columns=['age', 'salary'])"
@@ -163,8 +165,8 @@ class TestColumnSpecificityEvaluator:
         example = dspy.Example(
             comprehensive_data_analysis="Sample",
             overall_cleaning_plan="1. handle_missing_values(columns=['age', 'salary'])",
-            rationale="Handle missing"
-        ).with_inputs('comprehensive_data_analysis')
+            rationale="Handle missing",
+        ).with_inputs("comprehensive_data_analysis")
 
         prediction = Mock()
         prediction.overall_cleaning_plan = "1. handle_missing_values(columns=['age'])"
@@ -179,8 +181,8 @@ class TestColumnSpecificityEvaluator:
         example = dspy.Example(
             comprehensive_data_analysis="Sample",
             overall_cleaning_plan="1. handle_missing_values()",
-            rationale="Handle missing"
-        ).with_inputs('comprehensive_data_analysis')
+            rationale="Handle missing",
+        ).with_inputs("comprehensive_data_analysis")
 
         prediction = Mock()
         prediction.overall_cleaning_plan = "1. handle_missing_values(columns=['age'])"
@@ -230,7 +232,7 @@ class TestCompositeEvaluator:
         """Test composite evaluator with multiple sub-evaluators"""
         sub_evaluators = [
             (OperationPresenceEvaluator(mock_io_tool), 0.5),
-            (ParameterAccuracyEvaluator(mock_io_tool), 0.5)
+            (ParameterAccuracyEvaluator(mock_io_tool), 0.5),
         ]
         evaluator = CompositeEvaluator(mock_io_tool, sub_evaluators)
 
@@ -244,7 +246,7 @@ class TestCompositeEvaluator:
         """Test that weights are normalized"""
         sub_evaluators = [
             (OperationPresenceEvaluator(mock_io_tool), 2.0),
-            (ParameterAccuracyEvaluator(mock_io_tool), 3.0)
+            (ParameterAccuracyEvaluator(mock_io_tool), 3.0),
         ]
         evaluator = CompositeEvaluator(mock_io_tool, sub_evaluators)
 
@@ -266,8 +268,8 @@ class TestMetricFunctions:
         example = dspy.Example(
             comprehensive_data_analysis="Sample",
             overall_cleaning_plan="1. remove_duplicates()",
-            rationale="Remove duplicates"
-        ).with_inputs('comprehensive_data_analysis')
+            rationale="Remove duplicates",
+        ).with_inputs("comprehensive_data_analysis")
 
         prediction = Mock()
         prediction.overall_cleaning_plan = "1. remove_duplicates()"
@@ -286,8 +288,8 @@ class TestMetricFunctions:
         example = dspy.Example(
             comprehensive_data_analysis="Sample",
             overall_cleaning_plan="1. remove_duplicates()",
-            rationale="Remove duplicates"
-        ).with_inputs('comprehensive_data_analysis')
+            rationale="Remove duplicates",
+        ).with_inputs("comprehensive_data_analysis")
 
         prediction = Mock()
         prediction.overall_cleaning_plan = "1. remove_duplicates()"
@@ -303,8 +305,8 @@ class TestMetricFunctions:
         example = dspy.Example(
             comprehensive_data_analysis="Sample",
             overall_cleaning_plan="1. remove_duplicates()",
-            rationale="Remove duplicates"
-        ).with_inputs('comprehensive_data_analysis')
+            rationale="Remove duplicates",
+        ).with_inputs("comprehensive_data_analysis")
 
         prediction = Mock()
         prediction.overall_cleaning_plan = "1. remove_duplicates()"
@@ -331,5 +333,5 @@ class TestDefaultEvaluator:
         assert abs(total_weight - 1.0) < 1e-6
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

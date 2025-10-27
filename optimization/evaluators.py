@@ -7,11 +7,12 @@ for use in DSPy optimization.
 Focus: Plan quality and execution correctness (what actually affects output)
 """
 
-import pandas as pd
-import numpy as np
-from typing import Dict, Any, List, Optional, Callable, Set
 from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Set
+
 import dspy
+import numpy as np
+import pandas as pd
 
 
 class CleaningEvaluator:
@@ -95,11 +96,11 @@ class OperationPresenceEvaluator(CleaningEvaluator):
     def _extract_operations(self, plan: str) -> List[str]:
         """Extract operation names from a plan string"""
         operations = [
-            'remove_duplicates',
-            'handle_missing_values',
-            'remove_outliers',
-            'clean_text_columns',
-            'convert_data_types',
+            "remove_duplicates",
+            "handle_missing_values",
+            "remove_outliers",
+            "clean_text_columns",
+            "convert_data_types",
         ]
         return [op for op in operations if op in plan]
 
@@ -146,17 +147,25 @@ class ParameterAccuracyEvaluator(CleaningEvaluator):
     def _extract_parameters(self, plan: str) -> List[str]:
         """Extract parameter keywords from a plan string"""
         # Imputation strategies
-        strategies = ['median', 'mean', 'mode', 'most_frequent', 'forward_fill',
-                     'backward_fill', 'knn', 'drop']
+        strategies = [
+            "median",
+            "mean",
+            "mode",
+            "most_frequent",
+            "forward_fill",
+            "backward_fill",
+            "knn",
+            "drop",
+        ]
 
         # Outlier detection methods
-        methods = ['iqr', 'zscore', 'isolation_forest', 'modified_zscore']
+        methods = ["iqr", "zscore", "isolation_forest", "modified_zscore"]
 
         # Text operations
-        text_ops = ['strip', 'lower', 'upper', 'remove_special_chars']
+        text_ops = ["strip", "lower", "upper", "remove_special_chars"]
 
         # Other parameters
-        others = ['first', 'last', 'threshold']
+        others = ["first", "last", "threshold"]
 
         all_params = strategies + methods + text_ops + others
         return [param for param in all_params if param in plan]
@@ -191,7 +200,7 @@ class ColumnSpecificityEvaluator(CleaningEvaluator):
         if not expected_columns:
             # If expected plan doesn't specify columns, check that predicted has some structure
             # Look for "columns=" or column list patterns
-            has_column_structure = 'columns=' in predicted_plan or '[' in predicted_plan
+            has_column_structure = "columns=" in predicted_plan or "[" in predicted_plan
             return 1.0 if has_column_structure else 0.7
 
         # Calculate overlap of mentioned columns
@@ -270,19 +279,20 @@ class PlanStructureEvaluator(CleaningEvaluator):
 
         # Check 2: Has numbered steps (indicates structured plan)
         import re
-        has_numbering = bool(re.search(r'^\s*\d+\.', predicted_plan, re.MULTILINE))
+
+        has_numbering = bool(re.search(r"^\s*\d+\.", predicted_plan, re.MULTILINE))
         if has_numbering:
             score += 1.0
         checks += 1
 
         # Check 3: Contains function call syntax operation(...)
-        has_function_calls = '(' in predicted_plan and ')' in predicted_plan
+        has_function_calls = "(" in predicted_plan and ")" in predicted_plan
         if has_function_calls:
             score += 1.0
         checks += 1
 
         # Check 4: Contains parameter specifications (=)
-        has_parameters = '=' in predicted_plan
+        has_parameters = "=" in predicted_plan
         if has_parameters:
             score += 1.0
         checks += 1
@@ -297,11 +307,7 @@ class CompositeEvaluator(CleaningEvaluator):
     This allows for comprehensive evaluation using multiple metrics.
     """
 
-    def __init__(
-        self,
-        io_tool,
-        evaluators: List[tuple[CleaningEvaluator, float]]
-    ):
+    def __init__(self, io_tool, evaluators: List[tuple[CleaningEvaluator, float]]):
         """
         Initialize composite evaluator
 
@@ -316,8 +322,7 @@ class CompositeEvaluator(CleaningEvaluator):
         total_weight = sum(weight for _, weight in evaluators)
         if total_weight > 0:
             self.evaluators = [
-                (evaluator, weight / total_weight)
-                for evaluator, weight in evaluators
+                (evaluator, weight / total_weight) for evaluator, weight in evaluators
             ]
 
     def evaluate(self, example, prediction, trace=None) -> float:
@@ -354,10 +359,10 @@ def create_default_evaluator(io_tool) -> CleaningEvaluator:
         CompositeEvaluator instance
     """
     evaluators = [
-        (OperationPresenceEvaluator(io_tool), 0.35),      # Most important: right operations
-        (ColumnSpecificityEvaluator(io_tool), 0.30),      # Very important: column-specific
-        (ParameterAccuracyEvaluator(io_tool), 0.25),      # Important: right parameters
-        (PlanStructureEvaluator(io_tool), 0.10),          # Less important: structure
+        (OperationPresenceEvaluator(io_tool), 0.35),  # Most important: right operations
+        (ColumnSpecificityEvaluator(io_tool), 0.30),  # Very important: column-specific
+        (ParameterAccuracyEvaluator(io_tool), 0.25),  # Important: right parameters
+        (PlanStructureEvaluator(io_tool), 0.10),  # Less important: structure
     ]
 
     return CompositeEvaluator(io_tool, evaluators)
@@ -401,7 +406,9 @@ def dspy_metric(io_tool, evaluator: Optional[CleaningEvaluator] = None) -> Calla
     return metric
 
 
-def binary_metric(io_tool, threshold: float = 0.7, evaluator: Optional[CleaningEvaluator] = None) -> Callable:
+def binary_metric(
+    io_tool, threshold: float = 0.7, evaluator: Optional[CleaningEvaluator] = None
+) -> Callable:
     """
     Create a binary (pass/fail) DSPy metric
 

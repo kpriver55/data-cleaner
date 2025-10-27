@@ -85,6 +85,7 @@ python -m optimization.cli validate --dataset my_dataset.json
 ```
 
 Output:
+
 ```
 ✓ Dataset is valid!
 
@@ -162,6 +163,7 @@ python -m optimization.cli evaluate \
 ```
 
 Output:
+
 ```
 ✓ Evaluation complete
 
@@ -233,18 +235,21 @@ python -m optimization.cli evaluate \
 ### Choosing Optimizer Settings
 
 **Quick (Fast, for testing)**
+
 - Optimizer: `BootstrapFewShot`
 - Max demos: 3
 - Labeled demos: 8
 - Use when: Testing, small datasets
 
 **Balanced (Recommended)**
+
 - Optimizer: `BootstrapFewShot`
 - Max demos: 4
 - Labeled demos: 12
 - Use when: Most production use cases
 
 **Thorough (Best quality)**
+
 - Optimizer: `MIPRO`
 - Max demos: 8
 - Labeled demos: 16
@@ -274,19 +279,23 @@ Or use a `.env` file (see `.env.example`).
 ## Troubleshooting
 
 ### "Dataset not found"
+
 - Check the path is correct
 - Use absolute paths if relative paths don't work
 
 ### "API key not found"
+
 - Set environment variable for your provider
 - Check `.env` file if using one
 
 ### "Optimization failed"
+
 - Check LLM is responding (test with simple query)
 - Verify dataset is valid with `validate` command
 - Check you have enough examples (minimum 1, recommended 5+)
 
 ### "Error loading model"
+
 - Ensure model file exists and isn't corrupted
 - Check it was created with same DSPy version
 

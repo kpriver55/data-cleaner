@@ -4,14 +4,16 @@ Supports both local (Ollama) and online API-based LLMs
 """
 
 import os
-from typing import Optional, Dict, Any
 from enum import Enum
-import dspy
 from pathlib import Path
+from typing import Any, Dict, Optional
+
+import dspy
 
 
 class LLMProvider(Enum):
     """Supported LLM providers"""
+
     OLLAMA = "ollama"
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
@@ -51,9 +53,7 @@ class LLMConfig:
         return api_key
 
     def configure_ollama(
-        self,
-        model: str = "qwen2.5:7b-instruct-q5_k_m",
-        api_base: str = "http://localhost:11434"
+        self, model: str = "qwen2.5:7b-instruct-q5_k_m", api_base: str = "http://localhost:11434"
     ) -> dspy.LM:
         """
         Configure local Ollama LLM
@@ -69,19 +69,13 @@ class LLMConfig:
         self.model_name = model
 
         # Ollama doesn't require an API key, but DSPy expects one
-        self.lm = dspy.LM(
-            f"ollama_chat/{model}",
-            api_base=api_base,
-            api_key=""
-        )
+        self.lm = dspy.LM(f"ollama_chat/{model}", api_base=api_base, api_key="")
 
         dspy.settings.configure(lm=self.lm)
         return self.lm
 
     def configure_openai(
-        self,
-        model: str = "gpt-4o-mini",
-        api_key: Optional[str] = None
+        self, model: str = "gpt-4o-mini", api_key: Optional[str] = None
     ) -> dspy.LM:
         """
         Configure OpenAI API
@@ -99,18 +93,13 @@ class LLMConfig:
         if api_key is None:
             api_key = self._get_api_key("OpenAI", "OPENAI_API_KEY")
 
-        self.lm = dspy.LM(
-            f"openai/{model}",
-            api_key=api_key
-        )
+        self.lm = dspy.LM(f"openai/{model}", api_key=api_key)
 
         dspy.settings.configure(lm=self.lm)
         return self.lm
 
     def configure_anthropic(
-        self,
-        model: str = "claude-3-5-sonnet-20241022",
-        api_key: Optional[str] = None
+        self, model: str = "claude-3-5-sonnet-20241022", api_key: Optional[str] = None
     ) -> dspy.LM:
         """
         Configure Anthropic Claude API
@@ -128,10 +117,7 @@ class LLMConfig:
         if api_key is None:
             api_key = self._get_api_key("Anthropic", "ANTHROPIC_API_KEY")
 
-        self.lm = dspy.LM(
-            f"anthropic/{model}",
-            api_key=api_key
-        )
+        self.lm = dspy.LM(f"anthropic/{model}", api_key=api_key)
 
         dspy.settings.configure(lm=self.lm)
         return self.lm
@@ -139,7 +125,7 @@ class LLMConfig:
     def configure_together(
         self,
         model: str = "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
-        api_key: Optional[str] = None
+        api_key: Optional[str] = None,
     ) -> dspy.LM:
         """
         Configure Together AI API
@@ -157,18 +143,13 @@ class LLMConfig:
         if api_key is None:
             api_key = self._get_api_key("Together AI", "TOGETHER_API_KEY")
 
-        self.lm = dspy.LM(
-            f"together_ai/{model}",
-            api_key=api_key
-        )
+        self.lm = dspy.LM(f"together_ai/{model}", api_key=api_key)
 
         dspy.settings.configure(lm=self.lm)
         return self.lm
 
     def configure_anyscale(
-        self,
-        model: str = "meta-llama/Meta-Llama-3.1-8B-Instruct",
-        api_key: Optional[str] = None
+        self, model: str = "meta-llama/Meta-Llama-3.1-8B-Instruct", api_key: Optional[str] = None
     ) -> dspy.LM:
         """
         Configure Anyscale Endpoints API
@@ -186,10 +167,7 @@ class LLMConfig:
         if api_key is None:
             api_key = self._get_api_key("Anyscale", "ANYSCALE_API_KEY")
 
-        self.lm = dspy.LM(
-            f"anyscale/{model}",
-            api_key=api_key
-        )
+        self.lm = dspy.LM(f"anyscale/{model}", api_key=api_key)
 
         dspy.settings.configure(lm=self.lm)
         return self.lm
@@ -214,10 +192,7 @@ class LLMConfig:
         if provider == "ollama":
             api_base = os.environ.get("OLLAMA_API_BASE", "http://localhost:11434")
             default_model = "qwen2.5:7b-instruct-q5_k_m"
-            return self.configure_ollama(
-                model=model or default_model,
-                api_base=api_base
-            )
+            return self.configure_ollama(model=model or default_model, api_base=api_base)
 
         elif provider == "openai":
             return self.configure_openai(model=model or "gpt-4o-mini")
@@ -231,9 +206,7 @@ class LLMConfig:
             )
 
         elif provider == "anyscale":
-            return self.configure_anyscale(
-                model=model or "meta-llama/Meta-Llama-3.1-8B-Instruct"
-            )
+            return self.configure_anyscale(model=model or "meta-llama/Meta-Llama-3.1-8B-Instruct")
 
         else:
             raise ValueError(
@@ -251,16 +224,13 @@ class LLMConfig:
         return {
             "provider": self.provider.value if self.provider else None,
             "model": self.model_name,
-            "configured": self.lm is not None
+            "configured": self.lm is not None,
         }
 
 
 # Convenience function for quick setup
 def setup_llm(
-    provider: str = "ollama",
-    model: Optional[str] = None,
-    api_key: Optional[str] = None,
-    **kwargs
+    provider: str = "ollama", model: Optional[str] = None, api_key: Optional[str] = None, **kwargs
 ) -> dspy.LM:
     """
     Quick setup function for LLM configuration
@@ -299,24 +269,21 @@ def setup_llm(
     if provider == "ollama":
         return config.configure_ollama(
             model=model or "qwen2.5:7b-instruct-q5_k_m",
-            api_base=kwargs.get("api_base", "http://localhost:11434")
+            api_base=kwargs.get("api_base", "http://localhost:11434"),
         )
     elif provider == "openai":
         return config.configure_openai(model=model or "gpt-4o-mini", api_key=api_key)
     elif provider == "anthropic":
         return config.configure_anthropic(
-            model=model or "claude-3-5-sonnet-20241022",
-            api_key=api_key
+            model=model or "claude-3-5-sonnet-20241022", api_key=api_key
         )
     elif provider == "together":
         return config.configure_together(
-            model=model or "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
-            api_key=api_key
+            model=model or "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo", api_key=api_key
         )
     elif provider == "anyscale":
         return config.configure_anyscale(
-            model=model or "meta-llama/Meta-Llama-3.1-8B-Instruct",
-            api_key=api_key
+            model=model or "meta-llama/Meta-Llama-3.1-8B-Instruct", api_key=api_key
         )
     else:
         raise ValueError(

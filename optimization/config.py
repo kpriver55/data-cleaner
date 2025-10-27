@@ -4,10 +4,11 @@ Configuration for DSPy Optimization
 Manages settings and hyperparameters for optimization runs.
 """
 
-from dataclasses import dataclass, field
-from typing import Optional, Dict, Any, List
-from pathlib import Path
 import json
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 import yaml
 
 
@@ -26,6 +27,7 @@ class OptimizerConfig:
         metric_threshold: Minimum metric score to consider successful (for binary metrics)
         teacher_settings: Optional settings for teacher model (if different from student)
     """
+
     optimizer_type: str = "BootstrapFewShot"
     max_bootstrapped_demos: int = 4
     max_labeled_demos: int = 16
@@ -38,15 +40,14 @@ class OptimizerConfig:
     def __post_init__(self):
         """Validate configuration"""
         valid_optimizers = [
-            'BootstrapFewShot',
-            'BootstrapFewShotWithRandomSearch',
-            'MIPRO',
-            'MIPROv2'
+            "BootstrapFewShot",
+            "BootstrapFewShotWithRandomSearch",
+            "MIPRO",
+            "MIPROv2",
         ]
         if self.optimizer_type not in valid_optimizers:
             raise ValueError(
-                f"optimizer_type must be one of {valid_optimizers}, "
-                f"got '{self.optimizer_type}'"
+                f"optimizer_type must be one of {valid_optimizers}, " f"got '{self.optimizer_type}'"
             )
 
         if self.max_bootstrapped_demos < 1:
@@ -61,18 +62,18 @@ class OptimizerConfig:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
-            'optimizer_type': self.optimizer_type,
-            'max_bootstrapped_demos': self.max_bootstrapped_demos,
-            'max_labeled_demos': self.max_labeled_demos,
-            'num_candidate_programs': self.num_candidate_programs,
-            'num_threads': self.num_threads,
-            'max_errors': self.max_errors,
-            'metric_threshold': self.metric_threshold,
-            'teacher_settings': self.teacher_settings
+            "optimizer_type": self.optimizer_type,
+            "max_bootstrapped_demos": self.max_bootstrapped_demos,
+            "max_labeled_demos": self.max_labeled_demos,
+            "num_candidate_programs": self.num_candidate_programs,
+            "num_threads": self.num_threads,
+            "max_errors": self.max_errors,
+            "metric_threshold": self.metric_threshold,
+            "teacher_settings": self.teacher_settings,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'OptimizerConfig':
+    def from_dict(cls, data: Dict[str, Any]) -> "OptimizerConfig":
         """Create from dictionary"""
         return cls(**data)
 
@@ -80,13 +81,13 @@ class OptimizerConfig:
         """Save configuration to JSON file"""
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             json.dump(self.to_dict(), f, indent=2)
 
     @classmethod
-    def load(cls, path: str) -> 'OptimizerConfig':
+    def load(cls, path: str) -> "OptimizerConfig":
         """Load configuration from JSON file"""
-        with open(path, 'r') as f:
+        with open(path, "r") as f:
             data = json.load(f)
         return cls.from_dict(data)
 
@@ -102,6 +103,7 @@ class EvaluationConfig:
         use_binary_metric: Whether to use binary (pass/fail) metric
         binary_threshold: Threshold for binary metric
     """
+
     evaluator_type: str = "default"
     weights: Optional[Dict[str, float]] = None
     use_binary_metric: bool = False
@@ -110,14 +112,14 @@ class EvaluationConfig:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
-            'evaluator_type': self.evaluator_type,
-            'weights': self.weights,
-            'use_binary_metric': self.use_binary_metric,
-            'binary_threshold': self.binary_threshold
+            "evaluator_type": self.evaluator_type,
+            "weights": self.weights,
+            "use_binary_metric": self.use_binary_metric,
+            "binary_threshold": self.binary_threshold,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'EvaluationConfig':
+    def from_dict(cls, data: Dict[str, Any]) -> "EvaluationConfig":
         """Create from dictionary"""
         return cls(**data)
 
@@ -137,6 +139,7 @@ class OptimizationConfig:
         train_ratio: Ratio of data to use for training (rest for validation)
         random_seed: Random seed for reproducibility
     """
+
     name: str
     dataset_path: str
     output_dir: str = "optimization_results"
@@ -157,51 +160,51 @@ class OptimizationConfig:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
-            'name': self.name,
-            'description': self.description,
-            'dataset_path': self.dataset_path,
-            'output_dir': self.output_dir,
-            'optimizer': self.optimizer.to_dict(),
-            'evaluation': self.evaluation.to_dict(),
-            'train_ratio': self.train_ratio,
-            'random_seed': self.random_seed
+            "name": self.name,
+            "description": self.description,
+            "dataset_path": self.dataset_path,
+            "output_dir": self.output_dir,
+            "optimizer": self.optimizer.to_dict(),
+            "evaluation": self.evaluation.to_dict(),
+            "train_ratio": self.train_ratio,
+            "random_seed": self.random_seed,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'OptimizationConfig':
+    def from_dict(cls, data: Dict[str, Any]) -> "OptimizationConfig":
         """Create from dictionary"""
         # Handle nested configs
-        if 'optimizer' in data and isinstance(data['optimizer'], dict):
-            data['optimizer'] = OptimizerConfig.from_dict(data['optimizer'])
-        if 'evaluation' in data and isinstance(data['evaluation'], dict):
-            data['evaluation'] = EvaluationConfig.from_dict(data['evaluation'])
+        if "optimizer" in data and isinstance(data["optimizer"], dict):
+            data["optimizer"] = OptimizerConfig.from_dict(data["optimizer"])
+        if "evaluation" in data and isinstance(data["evaluation"], dict):
+            data["evaluation"] = EvaluationConfig.from_dict(data["evaluation"])
         return cls(**data)
 
     def save_json(self, path: str):
         """Save configuration to JSON file"""
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             json.dump(self.to_dict(), f, indent=2)
 
     def save_yaml(self, path: str):
         """Save configuration to YAML file"""
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             yaml.dump(self.to_dict(), f, default_flow_style=False)
 
     @classmethod
-    def load_json(cls, path: str) -> 'OptimizationConfig':
+    def load_json(cls, path: str) -> "OptimizationConfig":
         """Load configuration from JSON file"""
-        with open(path, 'r') as f:
+        with open(path, "r") as f:
             data = json.load(f)
         return cls.from_dict(data)
 
     @classmethod
-    def load_yaml(cls, path: str) -> 'OptimizationConfig':
+    def load_yaml(cls, path: str) -> "OptimizationConfig":
         """Load configuration from YAML file"""
-        with open(path, 'r') as f:
+        with open(path, "r") as f:
             data = yaml.safe_load(f)
         return cls.from_dict(data)
 
@@ -222,10 +225,9 @@ class OptimizationConfig:
 
 # Predefined configurations for common use cases
 
+
 def create_quick_optimization_config(
-    name: str,
-    dataset_path: str,
-    description: Optional[str] = None
+    name: str, dataset_path: str, description: Optional[str] = None
 ) -> OptimizationConfig:
     """
     Create a configuration for quick optimization (few examples, fast)
@@ -248,16 +250,14 @@ def create_quick_optimization_config(
             optimizer_type="BootstrapFewShot",
             max_bootstrapped_demos=3,
             max_labeled_demos=8,
-            num_threads=4
+            num_threads=4,
         ),
-        train_ratio=0.8
+        train_ratio=0.8,
     )
 
 
 def create_thorough_optimization_config(
-    name: str,
-    dataset_path: str,
-    description: Optional[str] = None
+    name: str, dataset_path: str, description: Optional[str] = None
 ) -> OptimizationConfig:
     """
     Create a configuration for thorough optimization (more examples, slower)
@@ -281,16 +281,14 @@ def create_thorough_optimization_config(
             max_bootstrapped_demos=8,
             max_labeled_demos=16,
             num_candidate_programs=20,
-            num_threads=8
+            num_threads=8,
         ),
-        train_ratio=0.85
+        train_ratio=0.85,
     )
 
 
 def create_balanced_optimization_config(
-    name: str,
-    dataset_path: str,
-    description: Optional[str] = None
+    name: str, dataset_path: str, description: Optional[str] = None
 ) -> OptimizationConfig:
     """
     Create a configuration with balanced settings
@@ -313,7 +311,7 @@ def create_balanced_optimization_config(
             optimizer_type="BootstrapFewShot",
             max_bootstrapped_demos=4,
             max_labeled_demos=12,
-            num_threads=8
+            num_threads=8,
         ),
-        train_ratio=0.8
+        train_ratio=0.8,
     )

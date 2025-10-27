@@ -5,12 +5,13 @@ Provides unified interface for different DSPy optimizers with progress tracking,
 error handling, and configuration management.
 """
 
-import dspy
-from typing import List, Callable, Dict, Any, Optional
-from abc import ABC, abstractmethod
-from pathlib import Path
 import time
+from abc import ABC, abstractmethod
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
+
+import dspy
 
 from .config import OptimizerConfig
 
@@ -55,7 +56,7 @@ class OptimizerWrapper(ABC):
         metric: Callable,
         valset: Optional[List[dspy.Example]] = None,
         teacher_module: Optional[dspy.Module] = None,
-        verbose: bool = True
+        verbose: bool = True,
     ) -> dspy.Module:
         """
         Run optimization and return compiled module
@@ -88,11 +89,7 @@ class OptimizerWrapper(ABC):
             if verbose:
                 print(f"\n⚙️  Compiling module...")
 
-            compiled_module = optimizer.compile(
-                student_module,
-                trainset=trainset,
-                valset=valset
-            )
+            compiled_module = optimizer.compile(student_module, trainset=trainset, valset=valset)
 
             self.end_time = time.time()
             duration = self.end_time - self.start_time
@@ -101,13 +98,15 @@ class OptimizerWrapper(ABC):
                 print(f"\n✅ Optimization completed in {duration:.2f} seconds")
 
             # Store optimization info
-            self.optimization_history.append({
-                'timestamp': datetime.now().isoformat(),
-                'duration_seconds': duration,
-                'train_size': len(trainset),
-                'val_size': len(valset) if valset else 0,
-                'config': self.config.to_dict()
-            })
+            self.optimization_history.append(
+                {
+                    "timestamp": datetime.now().isoformat(),
+                    "duration_seconds": duration,
+                    "train_size": len(trainset),
+                    "val_size": len(valset) if valset else 0,
+                    "config": self.config.to_dict(),
+                }
+            )
 
             return compiled_module
 
@@ -125,19 +124,19 @@ class OptimizerWrapper(ABC):
             Dictionary with stats
         """
         if not self.start_time:
-            return {'status': 'not_started'}
+            return {"status": "not_started"}
 
         stats = {
-            'optimizer_type': self.__class__.__name__,
-            'config': self.config.to_dict(),
-            'history': self.optimization_history
+            "optimizer_type": self.__class__.__name__,
+            "config": self.config.to_dict(),
+            "history": self.optimization_history,
         }
 
         if self.end_time:
-            stats['last_duration_seconds'] = self.end_time - self.start_time
-            stats['status'] = 'completed'
+            stats["last_duration_seconds"] = self.end_time - self.start_time
+            stats["status"] = "completed"
         else:
-            stats['status'] = 'running'
+            stats["status"] = "running"
 
         return stats
 
@@ -163,14 +162,14 @@ class BootstrapFewShotOptimizer(OptimizerWrapper):
         Returns:
             dspy.BootstrapFewShot instance
         """
-        teacher = kwargs.get('teacher')
+        teacher = kwargs.get("teacher")
 
         return dspy.BootstrapFewShot(
             metric=metric,
             max_bootstrapped_demos=self.config.max_bootstrapped_demos,
             max_labeled_demos=self.config.max_labeled_demos,
             teacher_settings=self.config.teacher_settings or {},
-            max_rounds=1  # Standard setting
+            max_rounds=1,  # Standard setting
         )
 
 
@@ -185,9 +184,7 @@ class BootstrapFewShotWithRandomSearchOptimizer(OptimizerWrapper):
     """
 
     def _create_optimizer(
-        self,
-        metric: Callable,
-        **kwargs
+        self, metric: Callable, **kwargs
     ) -> dspy.BootstrapFewShotWithRandomSearch:
         """
         Create BootstrapFewShotWithRandomSearch optimizer
@@ -199,7 +196,7 @@ class BootstrapFewShotWithRandomSearchOptimizer(OptimizerWrapper):
         Returns:
             dspy.BootstrapFewShotWithRandomSearch instance
         """
-        teacher = kwargs.get('teacher')
+        teacher = kwargs.get("teacher")
 
         return dspy.BootstrapFewShotWithRandomSearch(
             metric=metric,
@@ -207,7 +204,7 @@ class BootstrapFewShotWithRandomSearchOptimizer(OptimizerWrapper):
             max_labeled_demos=self.config.max_labeled_demos,
             num_candidate_programs=self.config.num_candidate_programs,
             num_threads=self.config.num_threads,
-            teacher_settings=self.config.teacher_settings or {}
+            teacher_settings=self.config.teacher_settings or {},
         )
 
 
@@ -243,7 +240,7 @@ class MIPROOptimizer(OptimizerWrapper):
             metric=metric,
             num_candidates=self.config.num_candidate_programs,
             init_temperature=0.7,  # Standard setting
-            verbose=True
+            verbose=True,
         )
 
 
@@ -261,10 +258,10 @@ def create_optimizer(config: OptimizerConfig) -> OptimizerWrapper:
         ValueError: If optimizer_type is not recognized
     """
     optimizer_map = {
-        'BootstrapFewShot': BootstrapFewShotOptimizer,
-        'BootstrapFewShotWithRandomSearch': BootstrapFewShotWithRandomSearchOptimizer,
-        'MIPRO': MIPROOptimizer,
-        'MIPROv2': MIPROOptimizer  # Use same wrapper for v2
+        "BootstrapFewShot": BootstrapFewShotOptimizer,
+        "BootstrapFewShotWithRandomSearch": BootstrapFewShotWithRandomSearchOptimizer,
+        "MIPRO": MIPROOptimizer,
+        "MIPROv2": MIPROOptimizer,  # Use same wrapper for v2
     }
 
     optimizer_class = optimizer_map.get(config.optimizer_type)
@@ -292,7 +289,7 @@ class OptimizationResult:
         train_size: int = 0,
         val_size: int = 0,
         duration_seconds: float = 0.0,
-        optimizer_stats: Optional[Dict[str, Any]] = None
+        optimizer_stats: Optional[Dict[str, Any]] = None,
     ):
         """
         Initialize optimization result
@@ -325,16 +322,16 @@ class OptimizationResult:
             Dictionary representation
         """
         return {
-            'timestamp': self.timestamp,
-            'config': self.config.to_dict(),
-            'metrics': {
-                'train_score': self.train_score,
-                'val_score': self.val_score,
-                'train_size': self.train_size,
-                'val_size': self.val_size
+            "timestamp": self.timestamp,
+            "config": self.config.to_dict(),
+            "metrics": {
+                "train_score": self.train_score,
+                "val_score": self.val_score,
+                "train_size": self.train_size,
+                "val_size": self.val_size,
             },
-            'duration_seconds': self.duration_seconds,
-            'optimizer_stats': self.optimizer_stats
+            "duration_seconds": self.duration_seconds,
+            "optimizer_stats": self.optimizer_stats,
         }
 
     def summary(self) -> str:
@@ -359,15 +356,17 @@ class OptimizationResult:
         if self.val_score is not None:
             lines.append(f"  Validation ({self.val_size} examples): {self.val_score:.4f}")
 
-        lines.extend([
-            "",
-            "Configuration:",
-            f"  Max bootstrapped demos: {self.config.max_bootstrapped_demos}",
-            f"  Max labeled demos: {self.config.max_labeled_demos}",
-            f"  Num candidate programs: {self.config.num_candidate_programs}",
-            f"  Num threads: {self.config.num_threads}",
-            "=" * 60
-        ])
+        lines.extend(
+            [
+                "",
+                "Configuration:",
+                f"  Max bootstrapped demos: {self.config.max_bootstrapped_demos}",
+                f"  Max labeled demos: {self.config.max_labeled_demos}",
+                f"  Num candidate programs: {self.config.num_candidate_programs}",
+                f"  Num threads: {self.config.num_threads}",
+                "=" * 60,
+            ]
+        )
 
         return "\n".join(lines)
 

@@ -13,18 +13,19 @@ Usage:
 """
 
 import argparse
-import sys
 import json
+import sys
+import time
 from pathlib import Path
 from typing import Optional
-import time
 
 # Rich library for beautiful terminal output (optional)
 try:
     from rich.console import Console
-    from rich.table import Table
-    from rich.progress import Progress, SpinnerColumn, TextColumn
     from rich.panel import Panel
+    from rich.progress import Progress, SpinnerColumn, TextColumn
+    from rich.table import Table
+
     RICH_AVAILABLE = True
     console = Console()
 except ImportError:
@@ -84,7 +85,7 @@ def cmd_create_dataset(args):
     # Save it
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    if args.format == 'json' or output_path.suffix == '.json':
+    if args.format == "json" or output_path.suffix == ".json":
         dataset.to_json(output_path)
     else:
         dataset.to_yaml(output_path)
@@ -108,7 +109,7 @@ def cmd_add_example(args):
         print_error(f"Dataset not found: {dataset_path}")
         return 1
 
-    if dataset_path.suffix == '.json':
+    if dataset_path.suffix == ".json":
         dataset = CleaningDataset.from_json(dataset_path)
     else:
         dataset = CleaningDataset.from_yaml(dataset_path)
@@ -116,25 +117,23 @@ def cmd_add_example(args):
     print_info(f"Loaded dataset with {len(dataset)} examples")
 
     # Create example
-    example_data = {
-        'input_path': args.input
-    }
+    example_data = {"input_path": args.input}
 
     # Add optional fields
     if args.plan:
-        with open(args.plan, 'r') as f:
-            example_data['expected_cleaning_plan'] = f.read()
+        with open(args.plan, "r") as f:
+            example_data["expected_cleaning_plan"] = f.read()
 
     if args.rationale:
-        with open(args.rationale, 'r') as f:
-            example_data['expected_rationale'] = f.read()
+        with open(args.rationale, "r") as f:
+            example_data["expected_rationale"] = f.read()
 
     if args.operations:
-        with open(args.operations, 'r') as f:
-            example_data['expected_operations'] = json.load(f)
+        with open(args.operations, "r") as f:
+            example_data["expected_operations"] = json.load(f)
 
     if args.description:
-        example_data['description'] = args.description
+        example_data["description"] = args.description
 
     # Create and add example
     try:
@@ -146,7 +145,7 @@ def cmd_add_example(args):
         return 1
 
     # Save dataset
-    if dataset_path.suffix == '.json':
+    if dataset_path.suffix == ".json":
         dataset.to_json(dataset_path)
     else:
         dataset.to_yaml(dataset_path)
@@ -169,7 +168,7 @@ def cmd_validate(args):
         return 1
 
     # Load dataset
-    if dataset_path.suffix == '.json':
+    if dataset_path.suffix == ".json":
         dataset = CleaningDataset.from_json(dataset_path)
     else:
         dataset = CleaningDataset.from_yaml(dataset_path)
@@ -194,10 +193,10 @@ def cmd_validate(args):
             table.add_column("Metric", style="cyan")
             table.add_column("Value", style="green")
 
-            table.add_row("Total examples", str(summary['total_examples']))
-            table.add_row("Full plan specs", str(summary['specification_types']['plan']))
-            table.add_row("Structured ops", str(summary['specification_types']['operations']))
-            table.add_row("With descriptions", str(summary['examples_with_description']))
+            table.add_row("Total examples", str(summary["total_examples"]))
+            table.add_row("Full plan specs", str(summary["specification_types"]["plan"]))
+            table.add_row("Structured ops", str(summary["specification_types"]["operations"]))
+            table.add_row("With descriptions", str(summary["examples_with_description"]))
 
             console.print(table)
         else:
@@ -212,12 +211,12 @@ def cmd_validate(args):
 
 def cmd_optimize(args):
     """Run optimization"""
-    from optimization import OptimizationConfig
     from data_cleaning_agent import DataCleaningAgent
-    from file_io_tool import FileIOTool
-    from stats_tool import StatisticalAnalysisTool
     from data_transformation_tool import DataTransformationTool
+    from file_io_tool import FileIOTool
     from llm_config import setup_llm
+    from optimization import OptimizationConfig
+    from stats_tool import StatisticalAnalysisTool
 
     print_header("Run Optimization")
 
@@ -227,7 +226,7 @@ def cmd_optimize(args):
         print_error(f"Configuration not found: {config_path}")
         return 1
 
-    if config_path.suffix == '.json':
+    if config_path.suffix == ".json":
         config = OptimizationConfig.load_json(config_path)
     else:
         config = OptimizationConfig.load_yaml(config_path)
@@ -276,11 +275,7 @@ def cmd_optimize(args):
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         agent.save_compiled_model(
-            str(output_path),
-            metadata={
-                'config': config.to_dict(),
-                'result': result.to_dict()
-            }
+            str(output_path), metadata={"config": config.to_dict(), "result": result.to_dict()}
         )
         print_success(f"Model saved to: {output_path}")
 
@@ -289,11 +284,11 @@ def cmd_optimize(args):
 
 def cmd_evaluate(args):
     """Evaluate a model on a test dataset"""
-    from optimization import CleaningDataset
     from data_cleaning_agent import DataCleaningAgent
-    from file_io_tool import FileIOTool
-    from stats_tool import StatisticalAnalysisTool
     from data_transformation_tool import DataTransformationTool
+    from file_io_tool import FileIOTool
+    from optimization import CleaningDataset
+    from stats_tool import StatisticalAnalysisTool
 
     print_header("Evaluate Model")
 
@@ -310,10 +305,7 @@ def cmd_evaluate(args):
     transform_tool = DataTransformationTool()
 
     agent = DataCleaningAgent.load_compiled_model(
-        str(model_path),
-        io_tool,
-        stats_tool,
-        transform_tool
+        str(model_path), io_tool, stats_tool, transform_tool
     )
 
     # Load test dataset
@@ -322,7 +314,7 @@ def cmd_evaluate(args):
         print_error(f"Test dataset not found: {test_path}")
         return 1
 
-    if test_path.suffix == '.json':
+    if test_path.suffix == ".json":
         dataset = CleaningDataset.from_json(test_path)
     else:
         dataset = CleaningDataset.from_yaml(test_path)
@@ -345,7 +337,7 @@ def cmd_evaluate(args):
         table.add_row("Average Score", f"{results['average_score']:.4f}")
         table.add_row("Min Score", f"{results['min_score']:.4f}")
         table.add_row("Max Score", f"{results['max_score']:.4f}")
-        table.add_row("Examples", str(results['num_examples']))
+        table.add_row("Examples", str(results["num_examples"]))
 
         console.print(table)
     else:
@@ -360,7 +352,7 @@ def cmd_evaluate(args):
         output_path = Path(args.output)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(output_path, 'w') as f:
+        with open(output_path, "w") as f:
             json.dump(results, f, indent=2)
 
         print_success(f"Results saved to: {output_path}")
@@ -372,127 +364,67 @@ def main():
     """Main CLI entry point"""
     parser = argparse.ArgumentParser(
         description="DSPy Optimization CLI for Data Cleaning Agent",
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-    subparsers = parser.add_subparsers(dest='command', help='Available commands')
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # create-dataset command
-    create_parser = subparsers.add_parser(
-        'create-dataset',
-        help='Create a new training dataset'
+    create_parser = subparsers.add_parser("create-dataset", help="Create a new training dataset")
+    create_parser.add_argument(
+        "--output", "-o", required=True, help="Output path for the dataset (JSON or YAML)"
     )
     create_parser.add_argument(
-        '--output', '-o',
-        required=True,
-        help='Output path for the dataset (JSON or YAML)'
+        "--format", choices=["json", "yaml"], default="json", help="Output format (default: json)"
     )
-    create_parser.add_argument(
-        '--format',
-        choices=['json', 'yaml'],
-        default='json',
-        help='Output format (default: json)'
-    )
-    create_parser.add_argument(
-        '--force', '-f',
-        action='store_true',
-        help='Overwrite existing file'
-    )
+    create_parser.add_argument("--force", "-f", action="store_true", help="Overwrite existing file")
 
     # add-example command
-    add_parser = subparsers.add_parser(
-        'add-example',
-        help='Add an example to a dataset'
+    add_parser = subparsers.add_parser("add-example", help="Add an example to a dataset")
+    add_parser.add_argument("--dataset", "-d", required=True, help="Path to the dataset file")
+    add_parser.add_argument(
+        "--input", "-i", required=True, help="Path to the messy input CSV/Excel file"
     )
     add_parser.add_argument(
-        '--dataset', '-d',
-        required=True,
-        help='Path to the dataset file'
+        "--plan", help="Path to file containing expected cleaning plan (Option A)"
     )
     add_parser.add_argument(
-        '--input', '-i',
-        required=True,
-        help='Path to the messy input CSV/Excel file'
+        "--rationale", help="Path to file containing expected rationale (Option A)"
     )
     add_parser.add_argument(
-        '--plan',
-        help='Path to file containing expected cleaning plan (Option A)'
+        "--operations", help="Path to JSON file with expected operations (Option B)"
     )
-    add_parser.add_argument(
-        '--rationale',
-        help='Path to file containing expected rationale (Option A)'
-    )
-    add_parser.add_argument(
-        '--operations',
-        help='Path to JSON file with expected operations (Option B)'
-    )
-    add_parser.add_argument(
-        '--description',
-        help='Description of the example'
-    )
+    add_parser.add_argument("--description", help="Description of the example")
 
     # validate command
-    validate_parser = subparsers.add_parser(
-        'validate',
-        help='Validate a training dataset'
-    )
-    validate_parser.add_argument(
-        '--dataset', '-d',
-        required=True,
-        help='Path to the dataset file'
-    )
+    validate_parser = subparsers.add_parser("validate", help="Validate a training dataset")
+    validate_parser.add_argument("--dataset", "-d", required=True, help="Path to the dataset file")
 
     # optimize command
-    optimize_parser = subparsers.add_parser(
-        'optimize',
-        help='Run optimization'
-    )
+    optimize_parser = subparsers.add_parser("optimize", help="Run optimization")
     optimize_parser.add_argument(
-        '--config', '-c',
-        required=True,
-        help='Path to optimization configuration (JSON or YAML)'
+        "--config", "-c", required=True, help="Path to optimization configuration (JSON or YAML)"
     )
+    optimize_parser.add_argument("--output", "-o", help="Output path for optimized model (.pkl)")
     optimize_parser.add_argument(
-        '--output', '-o',
-        help='Output path for optimized model (.pkl)'
+        "--llm-provider", help="LLM provider (ollama, openai, anthropic, etc.)"
     )
+    optimize_parser.add_argument("--llm-model", help="LLM model name")
     optimize_parser.add_argument(
-        '--llm-provider',
-        help='LLM provider (ollama, openai, anthropic, etc.)'
-    )
-    optimize_parser.add_argument(
-        '--llm-model',
-        help='LLM model name'
-    )
-    optimize_parser.add_argument(
-        '--quiet', '-q',
-        action='store_true',
-        help='Suppress verbose output'
+        "--quiet", "-q", action="store_true", help="Suppress verbose output"
     )
 
     # evaluate command
-    evaluate_parser = subparsers.add_parser(
-        'evaluate',
-        help='Evaluate a model on a test dataset'
+    evaluate_parser = subparsers.add_parser("evaluate", help="Evaluate a model on a test dataset")
+    evaluate_parser.add_argument(
+        "--model", "-m", required=True, help="Path to the model file (.pkl)"
     )
     evaluate_parser.add_argument(
-        '--model', '-m',
-        required=True,
-        help='Path to the model file (.pkl)'
+        "--test-dataset", "-t", required=True, help="Path to test dataset (JSON or YAML)"
     )
+    evaluate_parser.add_argument("--output", "-o", help="Output path for results (JSON)")
     evaluate_parser.add_argument(
-        '--test-dataset', '-t',
-        required=True,
-        help='Path to test dataset (JSON or YAML)'
-    )
-    evaluate_parser.add_argument(
-        '--output', '-o',
-        help='Output path for results (JSON)'
-    )
-    evaluate_parser.add_argument(
-        '--quiet', '-q',
-        action='store_true',
-        help='Suppress verbose output'
+        "--quiet", "-q", action="store_true", help="Suppress verbose output"
     )
 
     # Parse arguments
@@ -504,11 +436,11 @@ def main():
 
     # Route to command handler
     commands = {
-        'create-dataset': cmd_create_dataset,
-        'add-example': cmd_add_example,
-        'validate': cmd_validate,
-        'optimize': cmd_optimize,
-        'evaluate': cmd_evaluate
+        "create-dataset": cmd_create_dataset,
+        "add-example": cmd_add_example,
+        "validate": cmd_validate,
+        "optimize": cmd_optimize,
+        "evaluate": cmd_evaluate,
     }
 
     handler = commands.get(args.command)
@@ -519,5 +451,5 @@ def main():
         return 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

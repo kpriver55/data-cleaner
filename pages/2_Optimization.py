@@ -4,72 +4,69 @@ Optimization Page
 Train and optimize the data cleaning agent using DSPy optimizers.
 """
 
-import streamlit as st
-import pandas as pd
 import json
-import tempfile
 import os
-from pathlib import Path
+import tempfile
 from datetime import datetime
+from pathlib import Path
+
+import pandas as pd
+import streamlit as st
+
+from data_cleaning_agent import DataCleaningAgent
+from data_transformation_tool import DataTransformationTool
+from file_io_tool import FileIOTool
 
 # Import optimization components
 from optimization import (
-    CleaningExample,
     CleaningDataset,
+    CleaningExample,
     OptimizationConfig,
-    create_quick_optimization_config,
     create_balanced_optimization_config,
-    create_thorough_optimization_config
+    create_quick_optimization_config,
+    create_thorough_optimization_config,
 )
-from data_cleaning_agent import DataCleaningAgent
-from file_io_tool import FileIOTool
 from stats_tool import StatisticalAnalysisTool
-from data_transformation_tool import DataTransformationTool
 from utils import initialize_session_state
 
 # Configure page
-st.set_page_config(
-    page_title="Optimization",
-    page_icon="🎯",
-    layout="wide"
-)
+st.set_page_config(page_title="Optimization", page_icon="🎯", layout="wide")
 
 # Initialize session state
 initialize_session_state()
 
 # Add optimization-specific session state
-if 'optimization_dataset' not in st.session_state:
+if "optimization_dataset" not in st.session_state:
     st.session_state.optimization_dataset = None
-if 'optimization_config' not in st.session_state:
+if "optimization_config" not in st.session_state:
     st.session_state.optimization_config = None
-if 'optimization_result' not in st.session_state:
+if "optimization_result" not in st.session_state:
     st.session_state.optimization_result = None
-if 'optimized_agent' not in st.session_state:
+if "optimized_agent" not in st.session_state:
     st.session_state.optimized_agent = None
 
 st.title("🎯 Model Optimization")
 st.markdown("Train the AI on your specific cleaning tasks to improve performance")
 
 # Create tabs for different stages
-tab1, tab2, tab3, tab4 = st.tabs([
-    "📁 Dataset Manager",
-    "⚙️ Configuration",
-    "🚀 Run Optimization",
-    "📊 Evaluation"
-])
+tab1, tab2, tab3, tab4 = st.tabs(
+    ["📁 Dataset Manager", "⚙️ Configuration", "🚀 Run Optimization", "📊 Evaluation"]
+)
 
 # ==================== TAB 1: Dataset Manager ====================
 with tab1:
     st.header("Training Dataset Manager")
 
-    st.markdown("""
+    st.markdown(
+        """
     Create and manage training examples for optimization. Each example should demonstrate
     a cleaning task with expected results.
 
     **Specification Options:**
     - **Option A (Best)**: Provide full cleaning plan text and rationale
     - **Option B (Good)**: Provide structured operations list
-    """)
+    """
+    )
 
     # Upload existing dataset or create new
     col1, col2 = st.columns(2)
@@ -78,19 +75,21 @@ with tab1:
         st.subheader("Load Existing Dataset")
         uploaded_dataset = st.file_uploader(
             "Upload training dataset (JSON/YAML)",
-            type=['json', 'yaml', 'yml'],
-            help="Load an existing training dataset"
+            type=["json", "yaml", "yml"],
+            help="Load an existing training dataset",
         )
 
         if uploaded_dataset is not None:
             try:
                 # Save to temp file
-                with tempfile.NamedTemporaryFile(delete=False, suffix=Path(uploaded_dataset.name).suffix) as tmp_file:
+                with tempfile.NamedTemporaryFile(
+                    delete=False, suffix=Path(uploaded_dataset.name).suffix
+                ) as tmp_file:
                     tmp_file.write(uploaded_dataset.read())
                     tmp_path = tmp_file.name
 
                 # Load dataset
-                if tmp_path.endswith('.json'):
+                if tmp_path.endswith(".json"):
                     dataset = CleaningDataset.from_json(tmp_path)
                 else:
                     dataset = CleaningDataset.from_yaml(tmp_path)
@@ -134,14 +133,12 @@ with tab1:
             st.markdown("**Option A: Full Plan Specification** (Recommended for best quality)")
 
             input_file = st.file_uploader(
-                "Upload messy dataset",
-                type=['csv', 'xlsx', 'xls'],
-                key="new_example_input"
+                "Upload messy dataset", type=["csv", "xlsx", "xls"], key="new_example_input"
             )
 
             example_description = st.text_input(
                 "Description",
-                placeholder="E.g., Clean customer data with duplicates and missing values"
+                placeholder="E.g., Clean customer data with duplicates and missing values",
             )
 
             option_a = st.checkbox("Use Option A (Full Plan)")
@@ -153,13 +150,13 @@ with tab1:
                     placeholder="""1. remove_duplicates(subset=['id'], keep='first')
 2. handle_missing_values(columns=['age', 'salary'], numeric_strategy='median')
 3. clean_text_columns(columns=['email'], operations=['strip', 'lower'])""",
-                    height=150
+                    height=150,
                 )
 
                 expected_rationale = st.text_area(
                     "Expected Rationale",
                     placeholder="Explain why each operation is necessary and the order...",
-                    height=100
+                    height=100,
                 )
 
             if option_b:
@@ -180,7 +177,7 @@ with tab1:
     "rationale": "Impute missing values"
   }
 ]""",
-                    height=200
+                    height=200,
                 )
 
             if st.button("Add Example"):
@@ -195,23 +192,23 @@ with tab1:
                         input_dir.mkdir(parents=True, exist_ok=True)
                         input_path = input_dir / input_file.name
 
-                        with open(input_path, 'wb') as f:
+                        with open(input_path, "wb") as f:
                             f.write(input_file.read())
 
                         # Create example
                         example_data = {
-                            'input_path': str(input_path),
-                            'description': example_description if example_description else None
+                            "input_path": str(input_path),
+                            "description": example_description if example_description else None,
                         }
 
                         if option_a:
-                            example_data['expected_cleaning_plan'] = expected_plan
-                            example_data['expected_rationale'] = expected_rationale
+                            example_data["expected_cleaning_plan"] = expected_plan
+                            example_data["expected_rationale"] = expected_rationale
 
                         if option_b:
                             try:
                                 operations = json.loads(operations_json)
-                                example_data['expected_operations'] = operations
+                                example_data["expected_operations"] = operations
                             except json.JSONDecodeError as e:
                                 st.error(f"Invalid JSON for operations: {e}")
                                 st.stop()
@@ -219,7 +216,9 @@ with tab1:
                         example = CleaningExample(**example_data)
                         st.session_state.optimization_dataset.add_example(example)
 
-                        st.success(f"✅ Added example! Dataset now has {len(st.session_state.optimization_dataset)} examples")
+                        st.success(
+                            f"✅ Added example! Dataset now has {len(st.session_state.optimization_dataset)} examples"
+                        )
                         st.rerun()
 
                     except Exception as e:
@@ -251,8 +250,7 @@ with tab1:
 
         with col1:
             dataset_name = st.text_input(
-                "Dataset name",
-                value=f"training_dataset_{datetime.now().strftime('%Y%m%d')}"
+                "Dataset name", value=f"training_dataset_{datetime.now().strftime('%Y%m%d')}"
             )
 
         with col2:
@@ -273,14 +271,14 @@ with tab1:
                 st.success(f"✅ Dataset saved to {save_path}")
 
                 # Offer download
-                with open(save_path, 'r') as f:
+                with open(save_path, "r") as f:
                     file_content = f.read()
 
                 st.download_button(
                     label="📥 Download Dataset",
                     data=file_content,
                     file_name=save_path.name,
-                    mime="application/json" if format_choice == "JSON" else "text/yaml"
+                    mime="application/json" if format_choice == "JSON" else "text/yaml",
                 )
 
             except Exception as e:
@@ -290,7 +288,10 @@ with tab1:
 with tab2:
     st.header("Optimization Configuration")
 
-    if st.session_state.optimization_dataset is None or len(st.session_state.optimization_dataset) == 0:
+    if (
+        st.session_state.optimization_dataset is None
+        or len(st.session_state.optimization_dataset) == 0
+    ):
         st.warning("⚠️ Please create or load a training dataset first (Dataset Manager tab)")
     else:
         st.success(f"✅ Using dataset with {len(st.session_state.optimization_dataset)} examples")
@@ -298,8 +299,13 @@ with tab2:
         # Preset or custom configuration
         config_type = st.radio(
             "Configuration Type",
-            ["Quick (Fast, few examples)", "Balanced (Recommended)", "Thorough (Best quality, slower)", "Custom"],
-            help="Choose a preset or create custom configuration"
+            [
+                "Quick (Fast, few examples)",
+                "Balanced (Recommended)",
+                "Thorough (Best quality, slower)",
+                "Custom",
+            ],
+            help="Choose a preset or create custom configuration",
         )
 
         st.divider()
@@ -308,14 +314,14 @@ with tab2:
         config_name = st.text_input(
             "Configuration Name",
             value=f"optimization_{datetime.now().strftime('%Y%m%d_%H%M')}",
-            help="Unique name for this optimization run"
+            help="Unique name for this optimization run",
         )
 
         # Dataset path (temporary - will be saved)
         dataset_path_input = st.text_input(
             "Dataset Path",
             value="training_data/datasets/current_dataset.json",
-            help="Path where dataset will be saved for optimization"
+            help="Path where dataset will be saved for optimization",
         )
 
         if config_type == "Custom":
@@ -324,7 +330,7 @@ with tab2:
             optimizer_type = st.selectbox(
                 "Optimizer Type",
                 ["BootstrapFewShot", "BootstrapFewShotWithRandomSearch", "MIPRO"],
-                help="Choose the DSPy optimizer to use"
+                help="Choose the DSPy optimizer to use",
             )
 
             col1, col2 = st.columns(2)
@@ -335,7 +341,7 @@ with tab2:
                     min_value=1,
                     max_value=10,
                     value=4,
-                    help="Maximum number of demonstrations to bootstrap"
+                    help="Maximum number of demonstrations to bootstrap",
                 )
 
                 max_labeled_demos = st.slider(
@@ -343,7 +349,7 @@ with tab2:
                     min_value=1,
                     max_value=20,
                     value=12,
-                    help="Maximum number of labeled demonstrations to use"
+                    help="Maximum number of labeled demonstrations to use",
                 )
 
             with col2:
@@ -352,7 +358,7 @@ with tab2:
                     min_value=5,
                     max_value=30,
                     value=10,
-                    help="Number of candidate programs to generate"
+                    help="Number of candidate programs to generate",
                 )
 
                 num_threads = st.slider(
@@ -360,7 +366,7 @@ with tab2:
                     min_value=1,
                     max_value=16,
                     value=8,
-                    help="Number of parallel threads for optimization"
+                    help="Number of parallel threads for optimization",
                 )
 
             train_ratio = st.slider(
@@ -369,25 +375,25 @@ with tab2:
                 max_value=1.0,
                 value=0.8,
                 step=0.05,
-                help="Ratio of data to use for training (rest for validation)"
+                help="Ratio of data to use for training (rest for validation)",
             )
 
             # Create custom config
-            from optimization import OptimizerConfig, EvaluationConfig
+            from optimization import EvaluationConfig, OptimizerConfig
 
             optimizer_config = OptimizerConfig(
                 optimizer_type=optimizer_type,
                 max_bootstrapped_demos=max_bootstrapped_demos,
                 max_labeled_demos=max_labeled_demos,
                 num_candidate_programs=num_candidate_programs,
-                num_threads=num_threads
+                num_threads=num_threads,
             )
 
             config = OptimizationConfig(
                 name=config_name,
                 dataset_path=dataset_path_input,
                 optimizer=optimizer_config,
-                train_ratio=train_ratio
+                train_ratio=train_ratio,
             )
 
         else:
@@ -395,13 +401,10 @@ with tab2:
             preset_map = {
                 "Quick (Fast, few examples)": create_quick_optimization_config,
                 "Balanced (Recommended)": create_balanced_optimization_config,
-                "Thorough (Best quality, slower)": create_thorough_optimization_config
+                "Thorough (Best quality, slower)": create_thorough_optimization_config,
             }
 
-            config = preset_map[config_type](
-                name=config_name,
-                dataset_path=dataset_path_input
-            )
+            config = preset_map[config_type](name=config_name, dataset_path=dataset_path_input)
 
         # Display configuration
         st.divider()
@@ -477,7 +480,8 @@ with tab3:
             col1, col2 = st.columns([3, 1])
 
             with col1:
-                st.markdown("""
+                st.markdown(
+                    """
                 **What will happen:**
                 1. Load and validate training dataset
                 2. Split into train/validation sets
@@ -486,7 +490,8 @@ with tab3:
                 5. Save optimized model
 
                 ⏱️ **Estimated time:** 5-30 minutes depending on dataset size and optimizer
-                """)
+                """
+                )
 
             with col2:
                 run_optimization = st.button("🚀 Start Optimization", type="primary")
@@ -499,8 +504,7 @@ with tab3:
                     with st.spinner("Running optimization..."):
                         # Run optimization
                         result = st.session_state.cleaning_agent.compile_with_optimizer(
-                            config,
-                            verbose=False  # We'll show our own progress
+                            config, verbose=False  # We'll show our own progress
                         )
 
                         st.session_state.optimization_result = result
@@ -517,7 +521,7 @@ with tab3:
                         st.metric(
                             "Training Score",
                             f"{result.train_score:.4f}",
-                            help="Average score on training examples"
+                            help="Average score on training examples",
                         )
 
                     with col2:
@@ -526,7 +530,7 @@ with tab3:
                                 "Validation Score",
                                 f"{result.val_score:.4f}",
                                 delta=f"{result.val_score - result.train_score:.4f}",
-                                help="Score on held-out validation examples"
+                                help="Score on held-out validation examples",
                             )
                         else:
                             st.metric("Validation Score", "N/A")
@@ -535,7 +539,7 @@ with tab3:
                         st.metric(
                             "Duration",
                             f"{result.duration_seconds:.1f}s",
-                            help="Time taken for optimization"
+                            help="Time taken for optimization",
                         )
 
                     # Full results
@@ -546,10 +550,7 @@ with tab3:
                     st.divider()
                     st.subheader("💾 Save Optimized Model")
 
-                    model_name = st.text_input(
-                        "Model name",
-                        value=f"optimized_{config.name}"
-                    )
+                    model_name = st.text_input("Model name", value=f"optimized_{config.name}")
 
                     if st.button("Save Model"):
                         try:
@@ -559,10 +560,7 @@ with tab3:
 
                             st.session_state.cleaning_agent.save_compiled_model(
                                 str(model_path),
-                                metadata={
-                                    'config': config.to_dict(),
-                                    'result': result.to_dict()
-                                }
+                                metadata={"config": config.to_dict(), "result": result.to_dict()},
                             )
 
                             st.success(f"✅ Model saved to {model_path}")
@@ -578,9 +576,11 @@ with tab3:
 with tab4:
     st.header("Model Evaluation")
 
-    st.markdown("""
+    st.markdown(
+        """
     Evaluate optimized models on test datasets to measure performance improvements.
-    """)
+    """
+    )
 
     # Load model
     col1, col2 = st.columns(2)
@@ -589,15 +589,13 @@ with tab4:
         st.subheader("Load Model")
 
         model_file = st.file_uploader(
-            "Upload model (.pkl)",
-            type=['pkl'],
-            help="Load a saved optimized model"
+            "Upload model (.pkl)", type=["pkl"], help="Load a saved optimized model"
         )
 
         if model_file is not None:
             try:
                 # Save to temp file
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.pkl') as tmp_file:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".pkl") as tmp_file:
                     tmp_file.write(model_file.read())
                     tmp_path = tmp_file.name
 
@@ -607,10 +605,7 @@ with tab4:
                 transform_tool = DataTransformationTool()
 
                 loaded_agent = DataCleaningAgent.load_compiled_model(
-                    tmp_path,
-                    io_tool,
-                    stats_tool,
-                    transform_tool
+                    tmp_path, io_tool, stats_tool, transform_tool
                 )
 
                 st.session_state.optimized_agent = loaded_agent
@@ -627,19 +622,21 @@ with tab4:
 
         test_dataset_file = st.file_uploader(
             "Upload test dataset (JSON/YAML)",
-            type=['json', 'yaml', 'yml'],
-            help="Load a test dataset for evaluation"
+            type=["json", "yaml", "yml"],
+            help="Load a test dataset for evaluation",
         )
 
         if test_dataset_file is not None:
             try:
                 # Save to temp file
-                with tempfile.NamedTemporaryFile(delete=False, suffix=Path(test_dataset_file.name).suffix) as tmp_file:
+                with tempfile.NamedTemporaryFile(
+                    delete=False, suffix=Path(test_dataset_file.name).suffix
+                ) as tmp_file:
                     tmp_file.write(test_dataset_file.read())
                     tmp_path = tmp_file.name
 
                 # Load dataset
-                if tmp_path.endswith('.json'):
+                if tmp_path.endswith(".json"):
                     test_dataset = CleaningDataset.from_json(tmp_path)
                 else:
                     test_dataset = CleaningDataset.from_yaml(tmp_path)
@@ -654,15 +651,14 @@ with tab4:
                 st.error(f"Error loading test dataset: {e}")
 
     # Run evaluation
-    if st.session_state.get('optimized_agent') and st.session_state.get('test_dataset'):
+    if st.session_state.get("optimized_agent") and st.session_state.get("test_dataset"):
         st.divider()
 
         if st.button("📊 Run Evaluation"):
             try:
                 with st.spinner("Evaluating model..."):
                     results = st.session_state.optimized_agent.evaluate_on_dataset(
-                        st.session_state.test_dataset,
-                        verbose=False
+                        st.session_state.test_dataset, verbose=False
                     )
 
                 st.success("✅ Evaluation complete!")
@@ -680,12 +676,12 @@ with tab4:
                     st.metric("Max Score", f"{results['max_score']:.4f}")
 
                 with col4:
-                    st.metric("Examples", results['num_examples'])
+                    st.metric("Examples", results["num_examples"])
 
                 # Per-example results
                 st.subheader("Per-Example Results")
 
-                details_df = pd.DataFrame(results['details'])
+                details_df = pd.DataFrame(results["details"])
                 st.dataframe(details_df, use_container_width=True)
 
                 # Download results
@@ -695,14 +691,14 @@ with tab4:
                     label="📥 Download Results (JSON)",
                     data=results_json,
                     file_name=f"evaluation_results_{datetime.now().strftime('%Y%m%d_%H%M')}.json",
-                    mime="application/json"
+                    mime="application/json",
                 )
 
             except Exception as e:
                 st.error(f"Error during evaluation: {e}")
                 st.exception(e)
 
-    elif not st.session_state.get('optimized_agent'):
+    elif not st.session_state.get("optimized_agent"):
         st.info("Please load a model first")
-    elif not st.session_state.get('test_dataset'):
+    elif not st.session_state.get("test_dataset"):
         st.info("Please load a test dataset first")

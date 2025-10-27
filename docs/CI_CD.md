@@ -11,12 +11,14 @@ The project uses GitHub Actions for automated testing, linting, and quality chec
 ### Main CI Workflow (`.github/workflows/ci.yml`)
 
 Runs on:
+
 - Push to `main`, `develop`, `dspy-optimization-support` branches
 - Pull requests to `main`, `develop`
 
-#### Jobs:
+#### Jobs
 
 **1. Test** (`test`)
+
 - **Matrix**: Python 3.9, 3.10, 3.11
 - **Steps**:
   - Install dependencies
@@ -25,6 +27,7 @@ Runs on:
   - Upload coverage to Codecov
 
 **2. Lint** (`lint`)
+
 - **Steps**:
   - Check code formatting with Black
   - Check import sorting with isort
@@ -32,11 +35,13 @@ Runs on:
   - Type check with mypy
 
 **3. Security** (`security`)
+
 - **Steps**:
   - Check dependencies with Safety
   - Security scan with Bandit
 
 **4. Documentation** (`docs`)
+
 - **Steps**:
   - Check for broken links in markdown
   - Validate example configurations
@@ -225,12 +230,14 @@ Current version: `0.3.0` (in `pyproject.toml`)
 ### Creating a Release
 
 1. **Update version** in `pyproject.toml`:
+
    ```toml
    [project]
    version = "0.4.0"
    ```
 
 2. **Update CHANGELOG** (if exists):
+
    ```markdown
    ## [0.4.0] - 2025-01-XX
    ### Added
@@ -240,6 +247,7 @@ Current version: `0.3.0` (in `pyproject.toml`)
    ```
 
 3. **Commit and tag**:
+
    ```bash
    git add pyproject.toml CHANGELOG.md
    git commit -m "Bump version to 0.4.0"
@@ -282,16 +290,19 @@ twine upload dist/*
 ### CI Failures
 
 **Tests failing locally but pass in CI:**
+
 - Check Python version matches (use `python --version`)
 - Ensure all dependencies installed: `pip install -r requirements.txt -r requirements-dev.txt`
 - Clear pytest cache: `rm -rf .pytest_cache __pycache__`
 
 **Linting failures:**
+
 - Run `black .` and `isort .` to auto-fix formatting
 - Run `flake8 .` to see specific issues
 - Check `.flake8` config if rules seem inconsistent
 
 **Type checking failures:**
+
 - mypy is configured to be lenient (continues on error)
 - Add `# type: ignore` comments for false positives
 - Update type stubs: `pip install --upgrade types-PyYAML types-requests`
@@ -299,6 +310,7 @@ twine upload dist/*
 ### Pre-commit Issues
 
 **Hooks failing:**
+
 ```bash
 # Update hooks
 pre-commit autoupdate
@@ -312,6 +324,7 @@ pre-commit install
 ```
 
 **Slow hooks:**
+
 - Mypy can be slow - consider commenting it out in `.pre-commit-config.yaml`
 - Run specific hooks: `pre-commit run <hook-id>`
 
@@ -343,13 +356,17 @@ pre-commit install
 ## Configuration Files
 
 ### `.github/workflows/ci.yml`
+
 Main CI workflow configuration
 
 ### `.pre-commit-config.yaml`
+
 Pre-commit hooks configuration
 
 ### `pyproject.toml`
+
 Python package configuration and tool settings:
+
 - `[tool.black]` - Black formatter
 - `[tool.isort]` - Import sorting
 - `[tool.mypy]` - Type checking
@@ -357,6 +374,7 @@ Python package configuration and tool settings:
 - `[tool.coverage.*]` - Coverage settings
 
 ### `requirements-dev.txt`
+
 Development dependencies (testing, linting, etc.)
 
 ## Future Enhancements

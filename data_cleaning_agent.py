@@ -1,30 +1,33 @@
-import dspy
-import pandas as pd
 import json
 import pickle
-from typing import Dict, Any, Optional, List
-from signatures import DataAnalysisSignature, DataCleaningExecutionSignature
-from data_cleaning_tool import DataCleaningTool
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import dspy
+import pandas as pd
+
+from data_cleaning_tool import DataCleaningTool
+from signatures import DataAnalysisSignature, DataCleaningExecutionSignature
+
 
 class DataCleaningAgent(dspy.Module):
     """
     DSPy agent for data cleaning using ReAct for tool execution
     """
-    
+
     def __init__(self, io_tool, stats_tool, transform_tool):
         super().__init__()
         self.io_tool = io_tool
         self.stats_tool = stats_tool
         self.transform_tool = transform_tool
-        
+
         # Create the cleaning tool wrapper
         self.cleaning_tool = DataCleaningTool(transform_tool, stats_tool)
-        
+
         # DSPy modules
         self.analyzer = dspy.ChainOfThought(DataAnalysisSignature)
-        
+
         # ReAct agent with our cleaning tools
         tools = [
             self.cleaning_tool.handle_missing_values,
@@ -33,45 +36,45 @@ class DataCleaningAgent(dspy.Module):
             self.cleaning_tool.clean_text_columns,
             self.cleaning_tool.convert_data_types,
             self.cleaning_tool.inspect_data,
-            self.cleaning_tool.get_operations_log
+            self.cleaning_tool.get_operations_log,
         ]
-        
+
         self.react_agent = dspy.ReAct(DataCleaningExecutionSignature, tools=tools)
-    
+
     def analyze_data_quality(self, df: pd.DataFrame) -> Dict[str, Any]:
         """Use the stats tool to gather information about the dataset"""
-        
+
         # Get comprehensive data summary
         summary_report = self.stats_tool.summary_report(df)
-        
+
         # Get missing data details
         missing_info = {}
         for col in df.columns:
             missing_count = df[col].isna().sum()
             if missing_count > 0:
                 missing_info[col] = {
-                    'count': int(missing_count),
-                    'percentage': round((missing_count / len(df)) * 100, 2),
-                    'dtype': str(df[col].dtype)
+                    "count": int(missing_count),
+                    "percentage": round((missing_count / len(df)) * 100, 2),
+                    "dtype": str(df[col].dtype),
                 }
-        
+
         # Get data type information
         dtypes_info = {col: str(dtype) for col, dtype in df.dtypes.items()}
-        
+
         # Sample some actual data for context
         sample_data = {}
         for col in df.columns:
             non_null_values = df[col].dropna().head(5).tolist()
             sample_data[col] = [str(val) for val in non_null_values]
-        
+
         return {
-            'summary_report': summary_report,
-            'missing_info': missing_info,
-            'dtypes_info': dtypes_info,
-            'sample_data': sample_data,
-            'shape': df.shape
+            "summary_report": summary_report,
+            "missing_info": missing_info,
+            "dtypes_info": dtypes_info,
+            "sample_data": sample_data,
+            "shape": df.shape,
         }
-    
+
     def get_cleaning_plan(self, data_analysis: Dict[str, Any]) -> tuple:
         """Use LLM reasoning to create a cleaning plan"""
 
@@ -81,7 +84,7 @@ class DataCleaningAgent(dspy.Module):
                 return {key: convert_numpy_types(value) for key, value in obj.items()}
             elif isinstance(obj, list):
                 return [convert_numpy_types(item) for item in obj]
-            elif hasattr(obj, 'item'):  # numpy scalar
+            elif hasattr(obj, "item"):  # numpy scalar
                 return obj.item()
             elif isinstance(obj, (pd.Timestamp, pd.Timedelta)):
                 return str(obj)
@@ -89,8 +92,8 @@ class DataCleaningAgent(dspy.Module):
                 return obj
 
         # Prepare comprehensive data analysis input
-        column_stats = convert_numpy_types(data_analysis['summary_report']['column_statistics'])
-        sample_data = convert_numpy_types(data_analysis['sample_data'])
+        column_stats = convert_numpy_types(data_analysis["summary_report"]["column_statistics"])
+        sample_data = convert_numpy_types(data_analysis["sample_data"])
 
         comprehensive_analysis = f"""
 === DATASET OVERVIEW ===
@@ -125,21 +128,31 @@ Current data types: {json.dumps(data_analysis['dtypes_info'], indent=2)}
 
         # Check each plan field for action indicators
         plans = {
-            'remove_duplicates': analyzer_result.duplicate_cleaning_plan,
-            'handle_missing_values': analyzer_result.missing_values_plan,
-            'remove_outliers': analyzer_result.outlier_handling_plan,
-            'clean_text_columns': analyzer_result.text_cleaning_plan,
-            'convert_data_types': analyzer_result.data_type_plan
+            "remove_duplicates": analyzer_result.duplicate_cleaning_plan,
+            "handle_missing_values": analyzer_result.missing_values_plan,
+            "remove_outliers": analyzer_result.outlier_handling_plan,
+            "clean_text_columns": analyzer_result.text_cleaning_plan,
+            "convert_data_types": analyzer_result.data_type_plan,
         }
 
         for operation, plan_text in plans.items():
             # Look for negative action indicators
             plan_lower = plan_text.lower()
             no_action_indicators = [
-                'no action needed', 'not required', 'no issues', 'skip this step',
-                'no duplicates found', 'no missing values', 'no outliers detected',
-                'no text issues', 'no cleaning needed', 'no conversion needed',
-                'already clean', 'not necessary', 'no problems', 'no action required'
+                "no action needed",
+                "not required",
+                "no issues",
+                "skip this step",
+                "no duplicates found",
+                "no missing values",
+                "no outliers detected",
+                "no text issues",
+                "no cleaning needed",
+                "no conversion needed",
+                "already clean",
+                "not necessary",
+                "no problems",
+                "no action required",
             ]
 
             # Only require operation if no negative indicators are found
@@ -153,32 +166,32 @@ Current data types: {json.dumps(data_analysis['dtypes_info'], indent=2)}
         Main method to clean a dataset using ReAct agent
         """
         print(f"🔍 Loading dataset from: {input_path}")
-        
+
         # Load the data
         df = self.io_tool.read_spreadsheet(input_path)
         original_shape = df.shape
-        
+
         print(f"📊 Original dataset: {original_shape[0]} rows × {original_shape[1]} columns")
-        
+
         # Set the dataframe in our cleaning tool
         self.cleaning_tool.set_current_dataframe(df)
-        
+
         # Analyze data quality
         print("🔍 Analyzing data quality...")
         data_analysis = self.analyze_data_quality(df)
-        
+
         # Get cleaning plan from LLM
         print("🧠 Generating cleaning plan...")
         cleaning_plan, rationale = self.get_cleaning_plan(data_analysis)
-        
+
         print("📋 Cleaning Plan:")
         print(cleaning_plan)
         print(f"\n💭 Rationale:")
         print(rationale)
-        
+
         # Use ReAct agent to execute the cleaning plan
         print(f"\n🚀 Executing cleaning operations with ReAct agent...")
-        
+
         task_description = f"""
 IMPORTANT: You MUST complete ALL steps in the cleaning plan below. Do not stop after completing just one operation.
 
@@ -209,53 +222,73 @@ Current state: {original_shape[0]} rows × {original_shape[1]} columns
 
 Begin execution now. Remember: you must complete EVERY step in the plan, not just the first one that seems to work.
 """
-        
+
         # Execute with ReAct
-        react_result = self.react_agent(task = task_description)
-        
+        react_result = self.react_agent(task=task_description)
+
         print(f"\n🤖 ReAct Agent Result:")
         print(react_result)
-        
+
         # Get the final cleaned dataframe
         final_df = self.cleaning_tool.get_current_dataframe()
         final_shape = final_df.shape
-        
+
         # Save the cleaned dataset
         if output_path is None:
             input_path_obj = Path(input_path)
-            output_path = str(input_path_obj.parent / f"{input_path_obj.stem}_cleaned{input_path_obj.suffix}")
-        
+            output_path = str(
+                input_path_obj.parent / f"{input_path_obj.stem}_cleaned{input_path_obj.suffix}"
+            )
+
         print(f"\n💾 Saving cleaned dataset to: {output_path}")
         self.io_tool.write_spreadsheet(final_df, output_path)
-        
+
         # Generate cleaning report
-        report_path = output_path.replace('.csv', '_report.md').replace('.xlsx', '_report.md')
-        self.generate_report(input_path, output_path, original_shape, final_shape, 
-                           cleaning_plan, rationale, react_result, report_path)
-        
+        report_path = output_path.replace(".csv", "_report.md").replace(".xlsx", "_report.md")
+        self.generate_report(
+            input_path,
+            output_path,
+            original_shape,
+            final_shape,
+            cleaning_plan,
+            rationale,
+            react_result,
+            report_path,
+        )
+
         result = {
-            'input_file': input_path,
-            'output_file': output_path,
-            'report_file': report_path,
-            'original_shape': original_shape,
-            'final_shape': final_shape,
-            'cleaning_plan': cleaning_plan,
-            'rationale': rationale,
-            'react_result': react_result,
-            'operations_log': self.cleaning_tool.operations_log
+            "input_file": input_path,
+            "output_file": output_path,
+            "report_file": report_path,
+            "original_shape": original_shape,
+            "final_shape": final_shape,
+            "cleaning_plan": cleaning_plan,
+            "rationale": rationale,
+            "react_result": react_result,
+            "operations_log": self.cleaning_tool.operations_log,
         }
-        
+
         print(f"\n✅ Cleaning completed!")
-        print(f"📈 Result: {original_shape[0]} → {final_shape[0]} rows, {original_shape[1]} → {final_shape[1]} columns")
+        print(
+            f"📈 Result: {original_shape[0]} → {final_shape[0]} rows, {original_shape[1]} → {final_shape[1]} columns"
+        )
         print(f"📄 Report saved to: {report_path}")
-        
+
         return result
-    
-    def generate_report(self, input_path: str, output_path: str, original_shape: tuple, 
-                       final_shape: tuple, cleaning_plan: str, rationale: str, 
-                       react_result: str, report_path: str):
+
+    def generate_report(
+        self,
+        input_path: str,
+        output_path: str,
+        original_shape: tuple,
+        final_shape: tuple,
+        cleaning_plan: str,
+        rationale: str,
+        react_result: str,
+        report_path: str,
+    ):
         """Generate a markdown report of the cleaning process"""
-        
+
         report_content = f"""# Data Cleaning Report
 
 ## Summary
@@ -277,22 +310,20 @@ Begin execution now. Remember: you must complete EVERY step in the plan, not jus
 
 ## Operations Log
 """
-        
+
         for i, op in enumerate(self.cleaning_tool.operations_log, 1):
             report_content += f"""
 ### {i}. {op['operation']}
 - **Parameters**: `{op['parameters']}`
 - **Impact**: {op['rows_before']} → {op['rows_after']} rows
 """
-        
+
         self.io_tool.write_markdown(report_content, report_path, title="Data Cleaning Report")
 
     # ==================== Optimization Methods ====================
 
     def compile_with_optimizer(
-        self,
-        config,  # OptimizationConfig from optimization module
-        verbose: bool = True
+        self, config, verbose: bool = True  # OptimizationConfig from optimization module
     ):
         """
         Optimize the agent using DSPy optimizers
@@ -313,9 +344,10 @@ Begin execution now. Remember: you must complete EVERY step in the plan, not jus
         Returns:
             OptimizationResult with metrics and metadata
         """
+        import time
+
         from optimization import CleaningDataset, create_optimizer, dspy_metric
         from optimization.optimizers import OptimizationResult
-        import time
 
         if verbose:
             print(f"\n{'='*60}")
@@ -329,9 +361,9 @@ Begin execution now. Remember: you must complete EVERY step in the plan, not jus
         if verbose:
             print(f"\n📁 Loading dataset from {config.dataset_path}...")
 
-        if config.dataset_path.endswith('.json'):
+        if config.dataset_path.endswith(".json"):
             dataset = CleaningDataset.from_json(config.dataset_path)
-        elif config.dataset_path.endswith(('.yaml', '.yml')):
+        elif config.dataset_path.endswith((".yaml", ".yml")):
             dataset = CleaningDataset.from_yaml(config.dataset_path)
         else:
             raise ValueError(f"Unsupported dataset format: {config.dataset_path}")
@@ -401,7 +433,7 @@ Begin execution now. Remember: you must complete EVERY step in the plan, not jus
             trainset=trainset,
             metric=metric,
             valset=valset,
-            verbose=verbose
+            verbose=verbose,
         )
 
         duration = time.time() - start_time
@@ -454,7 +486,7 @@ Begin execution now. Remember: you must complete EVERY step in the plan, not jus
             train_size=len(trainset),
             val_size=len(valset) if valset else 0,
             duration_seconds=duration,
-            optimizer_stats=optimizer_wrapper.get_stats()
+            optimizer_stats=optimizer_wrapper.get_stats(),
         )
 
         if verbose:
@@ -465,8 +497,8 @@ Begin execution now. Remember: you must complete EVERY step in the plan, not jus
     def evaluate_on_dataset(
         self,
         dataset,  # CleaningDataset
-        metric = None,  # Optional custom metric
-        verbose: bool = True
+        metric=None,  # Optional custom metric
+        verbose: bool = True,
     ) -> Dict[str, Any]:
         """
         Evaluate agent performance on a dataset
@@ -509,24 +541,23 @@ Begin execution now. Remember: you must complete EVERY step in the plan, not jus
                 score = metric(example, prediction)
                 scores.append(score)
 
-                details.append({
-                    'example_index': i,
-                    'score': score,
-                    'expected_plan': example.overall_cleaning_plan,
-                    'predicted_plan': prediction.overall_cleaning_plan,
-                    'success': True
-                })
+                details.append(
+                    {
+                        "example_index": i,
+                        "score": score,
+                        "expected_plan": example.overall_cleaning_plan,
+                        "predicted_plan": prediction.overall_cleaning_plan,
+                        "success": True,
+                    }
+                )
 
             except Exception as e:
                 if verbose:
                     print(f"   Error on example {i}: {e}")
                 scores.append(0.0)
-                details.append({
-                    'example_index': i,
-                    'score': 0.0,
-                    'error': str(e),
-                    'success': False
-                })
+                details.append(
+                    {"example_index": i, "score": 0.0, "error": str(e), "success": False}
+                )
 
         # Calculate statistics
         avg_score = sum(scores) / len(scores) if scores else 0.0
@@ -534,12 +565,12 @@ Begin execution now. Remember: you must complete EVERY step in the plan, not jus
         max_score = max(scores) if scores else 0.0
 
         result = {
-            'average_score': avg_score,
-            'min_score': min_score,
-            'max_score': max_score,
-            'num_examples': len(scores),
-            'scores': scores,
-            'details': details
+            "average_score": avg_score,
+            "min_score": min_score,
+            "max_score": max_score,
+            "num_examples": len(scores),
+            "scores": scores,
+            "details": details,
         }
 
         if verbose:
@@ -564,13 +595,13 @@ Begin execution now. Remember: you must complete EVERY step in the plan, not jus
         path.parent.mkdir(parents=True, exist_ok=True)
 
         model_data = {
-            'version': '1.0',
-            'timestamp': datetime.now().isoformat(),
-            'analyzer': self.analyzer,
-            'metadata': metadata or {}
+            "version": "1.0",
+            "timestamp": datetime.now().isoformat(),
+            "analyzer": self.analyzer,
+            "metadata": metadata or {},
         }
 
-        with open(path, 'wb') as f:
+        with open(path, "wb") as f:
             pickle.dump(model_data, f)
 
         print(f"✅ Model saved to {path}")
@@ -591,20 +622,20 @@ Begin execution now. Remember: you must complete EVERY step in the plan, not jus
         Returns:
             DataCleaningAgent with loaded optimized analyzer
         """
-        with open(path, 'rb') as f:
+        with open(path, "rb") as f:
             model_data = pickle.load(f)
 
         # Create agent
         agent = cls(io_tool, stats_tool, transform_tool)
 
         # Replace analyzer with loaded version
-        agent.analyzer = model_data['analyzer']
+        agent.analyzer = model_data["analyzer"]
 
         print(f"✅ Model loaded from {path}")
         print(f"   Version: {model_data['version']}")
         print(f"   Timestamp: {model_data['timestamp']}")
 
-        if model_data['metadata']:
+        if model_data["metadata"]:
             print(f"   Metadata keys: {list(model_data['metadata'].keys())}")
 
         return agent

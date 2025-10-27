@@ -1,0 +1,150 @@
+[build-system]
+requires = ["setuptools>=65.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "data-cleaner-agent"
+version = "0.3.0"
+description = "AI-powered data cleaning agent with DSPy optimization"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+keywords = ["data-cleaning", "ai", "dspy", "llm", "machine-learning"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+dependencies = [
+    "dspy>=3.0.3",
+    "pandas>=2.3.0",
+    "numpy>=2.2.0",
+    "scipy>=1.15.0",
+    "scikit-learn>=1.7.0",
+    "streamlit>=1.28.0",
+    "plotly>=5.15.0",
+    "openpyxl>=3.1.0",
+    "PyYAML>=6.0.0",
+    "pydantic>=2.11.0",
+    "requests>=2.32.0",
+    "typing_extensions>=4.15.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.12.0",
+    "isort>=5.13.0",
+    "flake8>=7.0.0",
+    "mypy>=1.8.0",
+    "pre-commit>=3.6.0",
+]
+cli = [
+    "rich>=13.0.0",
+]
+all = [
+    "data-cleaner-agent[dev,cli]",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/data-cleaner"
+Documentation = "https://github.com/yourusername/data-cleaner/blob/main/README.md"
+Repository = "https://github.com/yourusername/data-cleaner"
+Issues = "https://github.com/yourusername/data-cleaner/issues"
+
+[project.scripts]
+data-cleaner-cli = "optimization.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["optimization*", "utils*"]
+exclude = ["tests*", "examples*"]
+
+[tool.black]
+line-length = 100
+target-version = ['py39', 'py310', 'py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+  | __pycache__
+  | observer
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+skip_gitignore = true
+known_first_party = ["optimization", "utils"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+no_strict_optional = true
+
+[[tool.mypy.overrides]]
+module = "dspy.*"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["optimization"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = "-v --cov=optimization --cov-report=term-missing --cov-report=html"
+
+[tool.coverage.run]
+source = ["optimization"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.flake8]
+max-line-length = 100
+extend-ignore = ["E203", "W503"]
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    ".venv",
+    "observer",
+]
